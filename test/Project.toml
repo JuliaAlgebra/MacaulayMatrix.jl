@@ -1,0 +1,4 @@
+[deps]
+CriticalValuePolynomial = "bcb046b7-f005-4e9a-a986-fb3acd014398"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+TypedPolynomials = "afbbf031-7a57-5f58-a1b9-b774a0fad08d"
