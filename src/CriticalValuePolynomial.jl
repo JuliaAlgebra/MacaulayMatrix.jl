@@ -68,6 +68,7 @@ end
 
 macaulay(polynomials, maxdegree) = first(macaulay_monomials(polynomials, maxdegree))
 
+
 function macaulay_monomials(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, maxdegree) where {T}
     vars = MP.variables(polynomials)
     monos = MP.monomials(vars, 0:maxdegree)
@@ -163,29 +164,36 @@ function solve_system(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}
         Z = LinearAlgebra.nullspace(Matrix(M))
         nullities[d] = size(Z, 2)
         if d > mindegree && nullities[d] == nullities[d - 1]
-            srows = standard_monomials(Z)
-            dgap, ma, gapsize = gap_zone_standard_monomials(srows, d, n)
-            srows = srows[1:ma]
-            if gapsize >= 1
-                mb = nullities[d]
-                break
+            sols = realization_observability(Z, monos)
+            if !isnothing(sols)
+                return sols
             end
         end
     end
+    return
+end
 
+function realization_observability(Z, monos)
+    n = MP.nvariables(monos)
+    d = MP.maxdegree(monos)
+    srows = standard_monomials(Z)
+    dgap, ma, gapsize = gap_zone_standard_monomials(srows, d, n)
+    srows = srows[1:ma]
+    if gapsize < 1
+        return
+    end
+    mb = size(Z, 2)
     if mb == ma 
         W = Z
     else
         error("Column compression not supported yet")
     end
 
-    if srows === nothing
-        return
-    end
-    
     # Solve the system:
     return shiftnullspace(W, dgap, srows, monos)
+
 end
+
 
 # Taken from JuMP.jl
 # This package exports everything except internal symbols, which are defined as those
