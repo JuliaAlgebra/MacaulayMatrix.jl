@@ -21,13 +21,19 @@ function realization_observability(U::AbstractMatrix)
     return [[x] for x in LinearAlgebra.eigen(A).values]
 end
 
-function realization_hankel(H::LinearAlgebra.Symmetric)
+function old_realization_hankel(H::LinearAlgebra.Symmetric)
     nM, cM, U = MultivariateMoments.lowrankchol(
         H,
         MultivariateMoments.SVDChol(),
         MultivariateMoments.LeadingRelativeRankTol(1e-6),
     )
     return realization_observability(U')
+end
+
+function realization_hankel(H::LinearAlgebra.Symmetric, monos)
+    M = MultivariateMoments.MomentMatrix(H, monos)
+    η = MultivariateMoments.extractatoms(M, 1e-4)
+    return [η.atoms[i].center for i in eachindex(η.atoms)]
 end
 
 function psd_hankel(Z::AbstractMatrix, solver, d, monos)
@@ -47,7 +53,7 @@ function psd_hankel(Z::AbstractMatrix, solver, d, monos)
     elseif JuMP.termination_status(model) != JuMP.MOI.OPTIMAL
         error(string(JuMP.solution_summary(model)))
     end
-    return realization_hankel(LinearAlgebra.Symmetric(JuMP.value.(H)))
+    return realization_hankel(LinearAlgebra.Symmetric(JuMP.value.(H)), gram_monos)
 end
 
 function psd_hankel(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, solver, maxdegree) where {T}
