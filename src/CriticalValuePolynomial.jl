@@ -33,7 +33,11 @@ end
 function realization_hankel(H::LinearAlgebra.Symmetric, monos)
     M = MultivariateMoments.MomentMatrix(H, monos)
     η = MultivariateMoments.extractatoms(M, 1e-4)
-    return [η.atoms[i].center for i in eachindex(η.atoms)]
+    if isnothing(η)
+        return
+    else
+        return [η.atoms[i].center for i in eachindex(η.atoms)]
+    end
 end
 
 function psd_hankel(Z::AbstractMatrix, solver, d, monos)

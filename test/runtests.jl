@@ -61,13 +61,23 @@ end
 function test_dreesen1() 
     ps = dreesen1()
     vars = variables(ps)
-    sols = solve_system(ps, 10)
-    _test_sols(sols, [
+    expected = [
         [4, -5],
         [3, -2],
         [0, -1],
         [1, 0],
-    ])
+    ]
+    solver = optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() => true)
+    @testset "d=$d" for d in 3:5
+        sols = solve_system(ps, d)
+        _test_sols(sols, expected)
+        sols = psd_hankel(ps, solver, d)
+        if d == 3
+            @test sols === nothing
+        else
+            _test_sols(sols, expected)
+        end
+    end
 end
 
 function test_univariate()
