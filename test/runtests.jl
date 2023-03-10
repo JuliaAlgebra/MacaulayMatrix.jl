@@ -2,6 +2,14 @@ module TestMacaulay
 
 using Test, TypedPolynomials
 using CriticalValuePolynomial
+using JuMP
+import CSDP
+
+function test_num_monomials() 
+    @test num_monomials(4, 0) == 1
+    @test num_monomials(4, 1) == 5
+    @test num_monomials(4, 2) == 15
+end
 
 # Taken from `macaulaylab.net/Tests/testmacaulay.m`
 function test_macaulay()
@@ -31,6 +39,52 @@ function runtests()
                 getfield(@__MODULE__, name)()
             end
         end
+    end
+end
+
+# Taken from `macaulaylab.net/Database/Systems/dreesen1.m`
+function dreesen1()
+    @polyvar x y
+    return [
+        -x^2 + 2x * y + y^2 + 5x - 3y - 4,
+         x^2 + 2x * y + y^2           - 1,
+    ]
+end
+
+function _test_sols(sols, expected)
+    @test length(sols) == length(expected)
+    for exp in expected
+        @test any(sol -> isapprox(sol, exp, rtol=1e-3), sols)
+    end
+end
+
+function test_dreesen1() 
+    ps = dreesen1()
+    vars = variables(ps)
+    sols = solve_system(ps, 10)
+    _test_sols(sols, [
+        [4, -5],
+        [3, -2],
+        [0, -1],
+        [1, 0],
+    ])
+end
+
+function test_univariate()
+    @polyvar x
+    p = 3x^4 + 8x^3 - 6x^2 + 24x + 1
+    q = differentiate(p, x)
+    exp = -2.658967
+    @test solve_system([q], 3) === nothing
+    for d in 4:8
+        sols = solve_system([q], d)
+        _test_sols(sols, [[exp]])
+    end
+    solver = optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() => true)
+    @test psd_hankel([q], solver, 3) === nothing
+    for d in 4:8
+        sols = psd_hankel([q], solver, 4)
+        _test_sols(sols, [[exp]])
     end
 end
 
