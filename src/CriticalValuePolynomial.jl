@@ -40,7 +40,7 @@ function realization_hankel(H::LinearAlgebra.Symmetric, monos)
     end
 end
 
-function psd_hankel(Z::AbstractMatrix, solver, d, monos)
+function moment_matrix(Z::AbstractMatrix, solver, d, monos)
     model = JuMP.Model(solver)
     JuMP.@variable(model, b[1:size(Z, 2)])
     JuMP.@constraint(model, sum(b) == 1)
@@ -57,7 +57,15 @@ function psd_hankel(Z::AbstractMatrix, solver, d, monos)
     elseif JuMP.termination_status(model) != JuMP.MOI.OPTIMAL
         error(string(JuMP.solution_summary(model)))
     end
-    return realization_hankel(LinearAlgebra.Symmetric(JuMP.value.(H)), gram_monos)
+    return LinearAlgebra.Symmetric(JuMP.value.(H)), gram_monos
+end
+
+function psd_hankel(Z::AbstractMatrix, solver, d, monos)
+    H = moment_matrix(Z, solver, d, monos)
+    if H === nothing
+        return nothing
+    end
+    return realization_hankel(H...)
 end
 
 function psd_hankel(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, solver, maxdegree) where {T}
