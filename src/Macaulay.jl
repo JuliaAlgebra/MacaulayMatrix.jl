@@ -1,4 +1,4 @@
-module CriticalValuePolynomial
+module Macaulay
 
 import LinearAlgebra, SparseArrays
 import MultivariatePolynomials as MP
@@ -227,4 +227,4 @@ for sym in names(@__MODULE__; all = true)
     @eval export $sym
 end
 
-end # module CriticalValuePolynomial
+end # module Macaulay

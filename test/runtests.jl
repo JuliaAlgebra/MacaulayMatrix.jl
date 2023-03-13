@@ -1,7 +1,7 @@
 module TestMacaulay
 
 using Test, TypedPolynomials
-using CriticalValuePolynomial
+using Macaulay
 using JuMP
 import CSDP
 
