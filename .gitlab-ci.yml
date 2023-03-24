@@ -3,10 +3,12 @@
     - |
       julia --project=@. -e '
         using Pkg
-        Pkg.add(PackageSpec(name="MultivariatePolynomials", rev="master"))
-        Pkg.add(PackageSpec(name="SemialgebraicSets", rev="master"))
-        Pkg.add(PackageSpec(name="MultivariateMoments", rev="bl/SSv0.3"))
-        Pkg.add(PackageSpec(name="TypedPolynomials", rev="master"))
+        Pkg.add([
+          PackageSpec(name="SemialgebraicSets", rev="master"),
+          PackageSpec(name="MultivariateMoments", rev="master"),
+          PackageSpec(name="MultivariatePolynomials", rev="master"),
+          PackageSpec(name="TypedPolynomials", rev="master"),
+        ])
         Pkg.build()
         Pkg.test(coverage=true)'
 .coverage:
@@ -37,10 +39,12 @@ pages:
     - |
       julia --project=docs -e '
         using Pkg
-        Pkg.add(PackageSpec(name="MultivariatePolynomials", rev="master"))
-        Pkg.add(PackageSpec(name="SemialgebraicSets", rev="master"))
-        Pkg.add(PackageSpec(name="MultivariateMoments", rev="bl/SSv0.3"))
-        Pkg.add(PackageSpec(name="TypedPolynomials", rev="master"))
+        Pkg.add([
+          PackageSpec(name="SemialgebraicSets", rev="master"),
+          PackageSpec(name="MultivariateMoments", rev="master"),
+          PackageSpec(name="MultivariatePolynomials", rev="master"),
+          PackageSpec(name="TypedPolynomials", rev="master"),
+        ])
         Pkg.develop(PackageSpec(path=pwd()))
         Pkg.instantiate()
         using Documenter: doctest
