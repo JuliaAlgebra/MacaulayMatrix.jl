@@ -44,8 +44,8 @@ pages:
           PackageSpec(name="MultivariateMoments", rev="master"),
           PackageSpec(name="MultivariatePolynomials", rev="master"),
           PackageSpec(name="TypedPolynomials", rev="master"),
+          PackageSpec(path=pwd()),
         ])
-        Pkg.develop(PackageSpec(path=pwd()))
         Pkg.instantiate()
         using Documenter: doctest
         using Macaulay
