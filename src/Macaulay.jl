@@ -2,8 +2,10 @@ module Macaulay
 
 import LinearAlgebra, SparseArrays
 import MultivariatePolynomials as MP
+import MultivariateBases as MB
 import JuMP
-import MultivariateMoments
+import MultivariateMoments as MM
+import Printf
 
 function realization_observability(U::AbstractMatrix)
     if true
@@ -22,17 +24,16 @@ function realization_observability(U::AbstractMatrix)
 end
 
 function old_realization_hankel(H::LinearAlgebra.Symmetric)
-    nM, cM, U = MultivariateMoments.lowrankchol(
+    nM, cM, U = MM.lowrankchol(
         H,
-        MultivariateMoments.SVDChol(),
-        MultivariateMoments.LeadingRelativeRankTol(1e-6),
+        MM.SVDChol(),
+        MM.LeadingRelativeRankTol(1e-6),
     )
     return realization_observability(U')
 end
 
-function realization_hankel(H::LinearAlgebra.Symmetric, monos)
-    M = MultivariateMoments.MomentMatrix(H, monos)
-    η = MultivariateMoments.extractatoms(M, 1e-4)
+function realization_hankel(M::MM.MomentMatrix)
+    η = MM.extractatoms(M, 1e-4)
     if isnothing(η)
         return
     else
@@ -40,7 +41,11 @@ function realization_hankel(H::LinearAlgebra.Symmetric, monos)
     end
 end
 
-function moment_matrix(Z::AbstractMatrix, solver, d, monos)
+function realization_hankel(H::LinearAlgebra.Symmetric, monos)
+    return realization_hankel(MM.MomentMatrix(H, monos))
+end
+
+function MM.moment_matrix(Z::AbstractMatrix, solver, d, monos)
     model = JuMP.Model(solver)
     JuMP.@variable(model, b[1:size(Z, 2)])
     JuMP.@constraint(model, sum(b) == 1)
@@ -54,28 +59,30 @@ function moment_matrix(Z::AbstractMatrix, solver, d, monos)
     JuMP.optimize!(model)
     if JuMP.termination_status(model) == JuMP.MOI.INFEASIBLE
         return
+    elseif JuMP.termination_status(model) == JuMP.MOI.ALMOST_OPTIMAL
+        @warn(string(JuMP.solution_summary(model)))
     elseif JuMP.termination_status(model) != JuMP.MOI.OPTIMAL
         error(string(JuMP.solution_summary(model)))
     end
-    return LinearAlgebra.Symmetric(JuMP.value.(H)), gram_monos
+    H = LinearAlgebra.Symmetric(JuMP.value.(H))
+    return MM.MomentMatrix(H, gram_monos)
 end
 
-function psd_hankel(Z::AbstractMatrix, solver, d, monos)
-    H = moment_matrix(Z, solver, d, monos)
+function MM.moment_matrix(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, solver, maxdegree) where {T}
+    M, monos = macaulay_monomials(polynomials, maxdegree)
+    Z = LinearAlgebra.nullspace(Matrix(M))
+    return MM.moment_matrix(Z, solver, div(maxdegree, 2), monos)
+end
+
+function psd_hankel(args...)
+    H = MM.moment_matrix(args...)
     if H === nothing
         return nothing
     end
-    return realization_hankel(H...)
-end
-
-function psd_hankel(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, solver, maxdegree) where {T}
-    M, monos = macaulay_monomials(polynomials, maxdegree)
-    Z = LinearAlgebra.nullspace(Matrix(M))
-    return psd_hankel(Z, solver, div(maxdegree, 2), monos)
+    return realization_hankel(H)
 end
 
 macaulay(polynomials, maxdegree) = first(macaulay_monomials(polynomials, maxdegree))
-
 
 function macaulay_monomials(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, maxdegree) where {T}
     vars = MP.variables(polynomials)
@@ -102,63 +109,9 @@ function macaulay_monomials(polynomials::AbstractVector{<:MP.AbstractPolynomialL
     return SparseArrays.sparse(I, J, K, row, length(monos)), monos
 end
 
-# TODO implement sieve
-function standard_monomials(Z, tol = 1e-10)
-    list = Int[]
-    old_rank = 0
-    for k in axes(Z, 1)
-        new_rank = LinearAlgebra.rank(Z[1:k, :], tol)
-        if new_rank > old_rank
-            push!(list, k)
-        end
-        old_rank = new_rank
-        if new_rank == size(Z, 2)
-            break
-        end
-    end
-    return list
-end
-
-num_monomials(d, n) = binomial(n + d, d)
-
-function gap_zone_standard_monomials(c, maxdegree, n)
-    ma = 0
-    gapsize = 0
-    dgap = nothing
-    for d in 0:maxdegree
-        num = num_monomials(d, n)
-        r = count(c .<= num) # FIXME findsortedfirst
-        if ma == r
-            gapsize += 1;
-            dgap = d - gapsize + 1;
-        else
-            if isnothing(dgap)
-                ma = r
-            else
-                break
-            end
-        end
-    end     
-    return dgap, ma, gapsize
-end
-
-function shiftnullspace(Z, dgap, srows, monos)
-    S = Z[srows, :]
-    Sx = [Z[[findfirst(isequal(monos[row]* x), monos) for row in srows], :] for x in MP.variables(monos)]
-    pS = LinearAlgebra.pinv(S)
-    Sx = [pS * S for S in Sx]
-    return MultivariateMoments.SemialgebraicSets.solvemultiplicationmatrices(
-        Sx,
-        MultivariateMoments.SemialgebraicSets.ReorderedSchurMultiplicationMatricesSolver{Float64}(),
-    )
-
-    return MultivariateMoments.solve
-    eig = [LinearAlgebra.eigen(S).values for S in Sx]
-    return [[eig[i][j] for i in eachindex(eig)] for j in eachindex(eig[1])]
-end
 
 # Inspired from `macaulaylab.net/Code/solvesystemnullspace.m`
-function solve_system(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, maxdegree) where {T}
+function solve_system(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, maxdegree; print_level=1) where {T}
     mindegree = maximum(MP.maxdegree, polynomials)
     n = MP.nvariables(polynomials)
     nullities = zeros(Int, maxdegree)
@@ -167,41 +120,31 @@ function solve_system(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}
     dgap = nothing
     srows = nothing
     monos = nothing
+    Printf.@printf("\t | degree \t | nullity \t | increase \t |\n")
+    Printf.@printf("\t |-----------------------------------------------|\n")
     for d in mindegree:maxdegree
         M, monos = macaulay_monomials(polynomials, d)
         Z = LinearAlgebra.nullspace(Matrix(M))
         nullities[d] = size(Z, 2)
-        if d > mindegree && nullities[d] == nullities[d - 1]
-            sols = realization_observability(Z, monos)
+        change = nullities[d] - nullities[d - 1]
+        if print_level >= 1
+            Printf.@printf(
+                "\t | %d \t \t | %d \t \t | %d \t \t |\n",
+                d,
+                nullities[d],
+                change,
+            )
+        end
+        if d > mindegree && iszero(change)
+            basis = MB.MonomialBasis(monos)
+            sols = MM.solve_nullspace(Z', basis, 0, 0, MM.ShiftNullspace())
             if !isnothing(sols)
-                return sols
+                return sols.elements
             end
         end
     end
     return
 end
-
-function realization_observability(Z, monos)
-    n = MP.nvariables(monos)
-    d = MP.maxdegree(monos)
-    srows = standard_monomials(Z)
-    dgap, ma, gapsize = gap_zone_standard_monomials(srows, d, n)
-    srows = srows[1:ma]
-    if gapsize < 1
-        return
-    end
-    mb = size(Z, 2)
-    if mb == ma 
-        W = Z
-    else
-        error("Column compression not supported yet")
-    end
-
-    # Solve the system:
-    return shiftnullspace(W, dgap, srows, monos)
-
-end
-
 
 # Taken from JuMP.jl
 # This package exports everything except internal symbols, which are defined as those
