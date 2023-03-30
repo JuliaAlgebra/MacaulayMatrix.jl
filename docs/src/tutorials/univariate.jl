@@ -4,7 +4,6 @@ using LinearAlgebra
 using TypedPolynomials
 using Macaulay
 using JuMP
-import CSDP
 using MultivariateMoments
 
 # Consider the following example:
@@ -13,9 +12,14 @@ using MultivariateMoments
 p = 3x^4 + 8x^3 - 6x^2 + 24x + 1
 q = differentiate(p, x)
 
-# The roots are:
+# Let's solve that system:
 
-solve_system([q], 4)
+sols = solve_system([q], 4)
+nothing # hide
+
+# The real roots are:
+
+sols
 
 # With PSD Hankel matrix trick no complex root!
 
