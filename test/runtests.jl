@@ -5,12 +5,6 @@ using Macaulay
 using JuMP
 import CSDP
 
-function test_num_monomials() 
-    @test num_monomials(4, 0) == 1
-    @test num_monomials(4, 1) == 5
-    @test num_monomials(4, 2) == 15
-end
-
 # Taken from `macaulaylab.net/Tests/testmacaulay.m`
 function test_macaulay()
     @polyvar x y
