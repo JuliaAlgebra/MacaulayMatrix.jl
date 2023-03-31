@@ -23,8 +23,8 @@ sols
 
 # With PSD Hankel matrix trick no complex root!
 
-import CSDP
-solver = optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() => true)
+import SCS
+solver = SCS.Optimizer
 psd_hankel([q], solver, 4)
 
 # What happened there ?
