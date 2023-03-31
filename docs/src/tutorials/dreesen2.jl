@@ -1,14 +1,19 @@
 # # Getting rid of root at infinity
+#md # [![](https://mybinder.org/badge_logo.svg)](@__BINDER_ROOT_URL__/generated/dreesen2.ipynb)
+#md # [![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](@__NBVIEWER_ROOT_URL__/generated/dreesen2.ipynb)
+# **Adapted from**: Section~2.2.1 p. 33 of [D13]
+#
+# [D13] Dreesen, Philippe.
+# *Back to the Roots: Polynomial System Solving Using Linear Algebra*
+# Ph.D. thesis (2013)
 
 using LinearAlgebra
 using TypedPolynomials
 using Macaulay
 using JuMP
-import CSDP
 using MultivariateMoments
 
-
-# Consider the `dreesen2` example:
+# Consider the system given in [D13, (2.3)] which corresponds to `Systems/dreesen2` of [macaulaylab](http://www.macaulaylab.net/):
 
 @polyvar x y z
 system = [
@@ -28,8 +33,8 @@ sols
 
 # With moment matrix of degree 3:
 
-import CSDP
-solver = optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() => true)
+import SCS
+solver = SCS.Optimizer
 M = moment_matrix(system, solver, 3)
 extractatoms(M, 1e-4, ShiftNullspace())
 

@@ -45,7 +45,7 @@ function realization_hankel(H::LinearAlgebra.Symmetric, monos)
     return realization_hankel(MM.MomentMatrix(H, monos))
 end
 
-function MM.moment_matrix(Z::AbstractMatrix, solver, d, monos)
+function MM.moment_matrix(Z::AbstractMatrix, solver, d, monos; print_level=1)
     model = JuMP.Model(solver)
     JuMP.@variable(model, b[1:size(Z, 2)])
     JuMP.@constraint(model, sum(b) == 1)
@@ -57,6 +57,9 @@ function MM.moment_matrix(Z::AbstractMatrix, solver, d, monos)
     ])
     JuMP.@constraint(model, H in JuMP.PSDCone())
     JuMP.optimize!(model)
+    if print_level >= 1
+        @info("Terminated with $(JuMP.termination_status(model)) in $(JuMP.solve_time(model)) ($(JuMP.raw_status(model))) in $(JuMP.solve_time(model))")
+    end
     if JuMP.termination_status(model) == JuMP.MOI.INFEASIBLE
         return
     elseif JuMP.termination_status(model) == JuMP.MOI.ALMOST_OPTIMAL
