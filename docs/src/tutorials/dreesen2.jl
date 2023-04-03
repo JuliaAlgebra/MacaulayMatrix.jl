@@ -36,14 +36,20 @@ sols
 import SCS
 solver = SCS.Optimizer
 M = moment_matrix(system, solver, 3)
+nothing # hide
+
 extractatoms(M, 1e-4, ShiftNullspace())
 
 # With moment matrix of degree 4:
 
 M = moment_matrix(system, solver, 4)
+nothing # hide
+
 extractatoms(M, 1e-4, ShiftNullspace())
 
 # With moment matrix of degree 5:
 
 M = moment_matrix(system, solver, 5)
+nothing # hide
+
 extractatoms(M, 1e-4, ShiftNullspace())

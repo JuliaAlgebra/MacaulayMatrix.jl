@@ -58,7 +58,7 @@ function MM.moment_matrix(Z::AbstractMatrix, solver, d, monos; print_level=1)
     JuMP.@constraint(model, H in JuMP.PSDCone())
     JuMP.optimize!(model)
     if print_level >= 1
-        @info("Terminated with $(JuMP.termination_status(model)) in $(JuMP.solve_time(model)) ($(JuMP.raw_status(model))) in $(JuMP.solve_time(model))")
+        @info("Terminated with $(JuMP.termination_status(model)) in $(JuMP.solve_time(model)) ($(JuMP.raw_status(model))) in $(JuMP.solve_time(model)) seconds.")
     end
     if JuMP.termination_status(model) == JuMP.MOI.INFEASIBLE
         return
@@ -72,8 +72,7 @@ function MM.moment_matrix(Z::AbstractMatrix, solver, d, monos; print_level=1)
 end
 
 function MM.moment_matrix(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, solver, maxdegree) where {T}
-    M, monos = macaulay_monomials(polynomials, maxdegree)
-    Z = LinearAlgebra.nullspace(Matrix(M))
+    Z, monos = macaulay_nullspace(polynomials, maxdegree)
     return MM.moment_matrix(Z, solver, div(maxdegree, 2), monos)
 end
 
@@ -112,6 +111,14 @@ function macaulay_monomials(polynomials::AbstractVector{<:MP.AbstractPolynomialL
     return SparseArrays.sparse(I, J, K, row, length(monos)), monos
 end
 
+function macaulay_nullspace(polynomials::AbstractVector{<:MP.AbstractPolynomialLike}, maxdegree)
+    Δt = @elapsed begin
+        M, monos = macaulay_monomials(polynomials, d)
+        Z = LinearAlgebra.nullspace(Matrix(M))
+    end
+    @info("Nullspace of degree $maxdegree of dimensions $(size(Z)) computed in $Δt seconds.")
+    return Z, monos
+end
 
 # Inspired from `macaulaylab.net/Code/solvesystemnullspace.m`
 function solve_system(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, maxdegree; print_level=1) where {T}
@@ -126,8 +133,7 @@ function solve_system(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}
     Printf.@printf("\t | degree \t | nullity \t | increase \t |\n")
     Printf.@printf("\t |-----------------------------------------------|\n")
     for d in mindegree:maxdegree
-        M, monos = macaulay_monomials(polynomials, d)
-        Z = LinearAlgebra.nullspace(Matrix(M))
+        Z, monos = macaulay_nullspace(polynomials, d)
         nullities[d] = size(Z, 2)
         change = nullities[d] - nullities[d - 1]
         if print_level >= 1
