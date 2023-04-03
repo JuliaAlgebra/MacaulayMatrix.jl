@@ -113,7 +113,7 @@ end
 
 function macaulay_nullspace(polynomials::AbstractVector{<:MP.AbstractPolynomialLike}, maxdegree)
     Δt = @elapsed begin
-        M, monos = macaulay_monomials(polynomials, d)
+        M, monos = macaulay_monomials(polynomials, maxdegree)
         Z = LinearAlgebra.nullspace(Matrix(M))
     end
     @info("Nullspace of degree $maxdegree of dimensions $(size(Z)) computed in $Δt seconds.")
