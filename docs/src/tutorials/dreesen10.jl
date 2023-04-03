@@ -27,13 +27,14 @@ system = [
 # With the classical Macaulay approach, the nullity increases by 2 at every degree
 # because of the positive dimensional solution set at infinity.
 
-sols = solve_system(system, 8)
+solve_system(system, 8)
 
 # With moment matrix of degree 6:
 
 import SCS
 solver = SCS.Optimizer
 M = moment_matrix(system, solver, 6)
+nothing # hide
 
 # We don't find anything:
 
@@ -42,6 +43,7 @@ extractatoms(M, 1e-4, ShiftNullspace())
 # With moment matrix of degree 7:
 
 M = moment_matrix(system, solver, 7)
+nothing # hide
 
 # We get different solutions for different runs because of the random combinations of multiplication matrices:
 # so let's fix the seed to make it reproducible:
