@@ -58,7 +58,7 @@ function MM.moment_matrix(Z::AbstractMatrix, solver, d, monos; print_level=1)
     JuMP.@constraint(model, H in JuMP.PSDCone())
     JuMP.optimize!(model)
     if print_level >= 1
-        @info("Terminated with $(JuMP.termination_status(model)) in $(JuMP.solve_time(model)) ($(JuMP.raw_status(model))) in $(JuMP.solve_time(model)) seconds.")
+        @info("Terminated with $(JuMP.termination_status(model)) ($(JuMP.raw_status(model))) in $(JuMP.solve_time(model)) seconds.")
     end
     if JuMP.termination_status(model) == JuMP.MOI.INFEASIBLE
         return
