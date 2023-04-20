@@ -100,23 +100,19 @@ function system(bench::Lagauw1)
         # Adjugate matrix is transpose of cofactor matrix
         C = transpose(C)
 
-
         # 3. FONC:
-        system = Vector{PolynomialType}(undef, 2 * n + 1 + 1)
-
         # We assume det(D) \neq 0
-        for i = 1:n # Diffs wrt. a_i
-            tmp = 2 * transpose(w) * transpose(T) * C * differentiate.(T, a[i]) * w * det(D) - transpose(w) * transpose(T) * C * differentiate.(D, a[i]) * C * T * w
-            system[i] = tmp[1, 1] # Remove matrix around element
-        end
-        for i = 1:n+1 # Diffs wrt. b_i
-            tmp = 2 * transpose(w) * transpose(T) * C * differentiate.(T, b[i]) * w * det(D) - transpose(w) * transpose(T) * C * differentiate.(D, b[i]) * C * T * w
-            system[n+i] = tmp[1, 1] # Remove matrix around element
+        system = map(1:(2n + 1)) do i
+            v = i <= n ? a[i] : b[i - n]
+            2 * transpose(w) * transpose(T) * C * differentiate.(T, v) * w * det(D) - transpose(w) * transpose(T) * C * differentiate.(D, v) * C * T * w
         end
 
         # Require det(D)*f = 1 (with an auxiliary variable f), making sure that the det is not equal to zero, hopefully reducing the positive dimensionality.
         @polyvar f
-        system[end] = det(D) * f - 1
+        push!(system, det(D) * f - 1)
     end
     return system
 end
+
+s0 = system(Lagauw1(false))
+s1 = system(Lagauw1(true))
