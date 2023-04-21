@@ -116,3 +116,15 @@ end
 
 s0 = system(Lagauw1(false))
 s1 = system(Lagauw1(true))
+
+using Macaulay
+using MultivariateMoments
+solve_system(s1, 4)
+
+import SCS
+ν13scs = moment_matrix(s1, SCS.Optimizer, 3)
+ν14scs = moment_matrix(s1, SCS.Optimizer, 4)
+
+using MosekTools
+ν13mosek = moment_matrix(s1, Mosek.Optimizer, 3)
+ν14mosek = moment_matrix(s1, Mosek.Optimizer, 4)
