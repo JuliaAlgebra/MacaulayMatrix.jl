@@ -96,7 +96,7 @@ function macaulay_monomials(polynomials::AbstractVector{<:MP.AbstractPolynomialL
     K = T[]
     for leading_mono in monos
         for p in polynomials
-            lm = MP.leadingmonomial(p)
+            lm = MP.leading_monomial(p)
             if MP.divides(lm, leading_mono)
                 factor = MP.div_multiple(leading_mono, lm)
                 row += 1
