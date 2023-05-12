@@ -179,4 +179,7 @@ for sym in names(@__MODULE__; all = true)
     @eval export $sym
 end
 
+include("H2/H2.jl")
+export H2
+
 end # module Macaulay

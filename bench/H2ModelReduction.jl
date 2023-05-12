@@ -3,12 +3,11 @@
 #
 # (c) Sibren Lagauw, 2023.
 
-using DynamicPolynomials
-
-include("H2.jl")
+using Macaulay
 
 # Create system of equations:
-system, vars = H2.composeSystemWalsh(H2.F3(), 3)
+m = 3
+system, vars = H2.composeSystemWalsh(H2.F3(), m)
 
 # Solve using Homotopy:
 using HomotopyContinuation

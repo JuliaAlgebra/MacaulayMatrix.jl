@@ -7,6 +7,7 @@
           PackageSpec(name="SemialgebraicSets", rev="master"),
           PackageSpec(name="MultivariateMoments", rev="master"),
           PackageSpec(name="MultivariatePolynomials", rev="master"),
+          PackageSpec(name="DynamicPolynomials", rev="master"),
           PackageSpec(name="TypedPolynomials", rev="master"),
         ])
         Pkg.build()
@@ -27,8 +28,8 @@ Julia 1.6:
   extends:
     - .script
     - .coverage
-Julia 1.8:
-  image: julia:1.8
+Julia 1.9:
+  image: julia:1.9
   extends:
     - .script
     - .coverage
@@ -43,6 +44,7 @@ pages:
           PackageSpec(name="SemialgebraicSets", rev="master"),
           PackageSpec(name="MultivariateMoments", rev="master"),
           PackageSpec(name="MultivariatePolynomials", rev="master"),
+          PackageSpec(name="DynamicPolynomials", rev="master"),
           PackageSpec(name="TypedPolynomials", rev="master"),
           PackageSpec(path=pwd()),
         ])
