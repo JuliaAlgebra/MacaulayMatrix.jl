@@ -17,7 +17,7 @@ function system(bench::Lagauw1)
     w = [w[2, :]; w[1, :]]
 
     # Define variables:
-    # @PolyVar (DynamicPolynomials) does not allow to compute with symbolic matrices
+    # @polyVar (DynamicPolynomials) does not allow to compute with symbolic matrices
     # @var (HomotopyContinuation)
     # @variables (Symbolics) 
     n = 1

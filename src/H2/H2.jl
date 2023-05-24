@@ -1,6 +1,7 @@
 module H2
 
 import MutableArithmetics as MA
+import MultivariatePolynomials as MP
 using DynamicPolynomials
 using LinearAlgebra
 import QuadGK
@@ -187,7 +188,7 @@ function composeSystemWalsh(tf::SISOTransferFunction, q::Int)
 end
 
 
-function analyseSolutions(x::Vector{Vector{Float64}}, tf::SISOTransferFunction, q::Int, vars::Vector{PolyVar{true}}, tol::Float64=1e-5)
+function analyseSolutions(x::Vector{Vector{Float64}}, tf::SISOTransferFunction, q::Int, vars::Vector{<:MP.AbstractVariable}, tol::Float64=1e-5)
     n = length(tf.den) - 1
     k = length(x)
 
@@ -311,7 +312,7 @@ Return the coefficients (in decreasing power order) of the
 product of polynomials with coefficients `x` and `y`.
 (in decreasing power order).
 """
-function addPoly(x::Vector{Polynomial{true,Float64}}, y::Vector{Polynomial{true,Float64}})
+function addPoly(x::Vector, y::Vector)
     # Add two polynomials (given as a coefficient vector)
 
     n, m = length(x), length(y)

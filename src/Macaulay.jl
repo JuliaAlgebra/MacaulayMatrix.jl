@@ -24,16 +24,16 @@ function realization_observability(U::AbstractMatrix)
 end
 
 function old_realization_hankel(H::LinearAlgebra.Symmetric)
-    nM, cM, U = MM.lowrankchol(
+    ldlt = MM.low_rank_ldlt(
         H,
-        MM.SVDChol(),
+        MM.SVDLDLT(),
         MM.LeadingRelativeRankTol(1e-6),
     )
-    return realization_observability(U')
+    return realization_observability(ldlt.L)
 end
 
 function realization_hankel(M::MM.MomentMatrix)
-    η = MM.extractatoms(M, 1e-4)
+    η = MM.atomic_measure(M, 1e-4)
     if isnothing(η)
         return
     else
@@ -45,11 +45,13 @@ function realization_hankel(H::LinearAlgebra.Symmetric, monos)
     return realization_hankel(MM.MomentMatrix(H, monos))
 end
 
-function MM.moment_matrix(Z::AbstractMatrix, solver, d, monos; print_level=1)
+function MM.moment_matrix(Z::MM.MacaulayNullspace, solver, d; print_level=1)
     model = JuMP.Model(solver)
-    JuMP.@variable(model, b[1:size(Z, 2)])
+    r = size(Z.matrix, 2)
+    JuMP.@variable(model, b[1:r])
     JuMP.@constraint(model, sum(b) == 1)
-    Zb = Z * b
+    Zb = Z.matrix * b
+    monos = Z.basis.monomials
     gram_monos = MP.monomials(MP.variables(monos), 0:d)
     H = LinearAlgebra.Symmetric([
         Zb[findfirst(isequal(gram_monos[i] * gram_monos[j]), monos)]
@@ -72,8 +74,8 @@ function MM.moment_matrix(Z::AbstractMatrix, solver, d, monos; print_level=1)
 end
 
 function MM.moment_matrix(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, solver, maxdegree) where {T}
-    Z, monos = macaulay_nullspace(polynomials, maxdegree)
-    return MM.moment_matrix(Z, solver, div(maxdegree, 2), monos)
+    Z = macaulay_nullspace(polynomials, maxdegree)
+    return MM.moment_matrix(Z, solver, div(maxdegree, 2))
 end
 
 function psd_hankel(args...)
@@ -111,17 +113,37 @@ function macaulay_monomials(polynomials::AbstractVector{<:MP.AbstractPolynomialL
     return SparseArrays.sparse(I, J, K, row, length(monos)), monos
 end
 
-function macaulay_nullspace(polynomials::AbstractVector{<:MP.AbstractPolynomialLike}, maxdegree)
+function _nullspace(
+    M::Matrix,
+    # This corresponds to the default of `LinearAlgebra.nullspace`
+    rank_check=MM.LeadingRelativeRankTol(min(size(M)...) * eps(real(float(oneunit(eltype(M)))))),
+)
+    m, n = size(M)
+    if iszero(m) || iszero(n)
+        Z = Matrix{LinearAlgebra.eigtype(eltype(A))}(LinearAlgebra.I, n, n)
+        accuracy = zero(T)
+    else
+        SVD = LinearAlgebra.svd(M; full=true)
+        r = MM.rank_from_singular_values(SVD.S, rank_check)
+        Z = (SVD.Vt[(r+1):end,:])'
+        accuracy = MM.accuracy(SVD.S, r, rank_check)
+    end
+    return Z, accuracy
+end
+
+_nullspace(M, args...) = _nullspace(Matrix(M), args...)
+
+function macaulay_nullspace(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, maxdegree, args...) where {T}
     Δt = @elapsed begin
         M, monos = macaulay_monomials(polynomials, maxdegree)
-        Z = LinearAlgebra.nullspace(Matrix(M))
+        Z, accuracy = _nullspace(M, args...)
     end
     @info("Nullspace of degree $maxdegree of dimensions $(size(Z)) computed in $Δt seconds.")
-    return Z, monos
+    return MM.MacaulayNullspace(Z, MB.MonomialBasis(monos), accuracy)
 end
 
 # Inspired from `macaulaylab.net/Code/solvesystemnullspace.m`
-function solve_system(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, maxdegree; print_level=1) where {T}
+function solve_system(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, maxdegree, args...; print_level=1) where {T}
     mindegree = maximum(MP.maxdegree, polynomials)
     n = MP.nvariables(polynomials)
     nullities = zeros(Int, maxdegree)
@@ -133,8 +155,8 @@ function solve_system(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}
     Printf.@printf("\t | degree \t | nullity \t | increase \t |\n")
     Printf.@printf("\t |-----------------------------------------------|\n")
     for d in mindegree:maxdegree
-        Z, monos = macaulay_nullspace(polynomials, d)
-        nullities[d] = size(Z, 2)
+        Z = macaulay_nullspace(polynomials, d, args...)
+        nullities[d] = size(Z.matrix, 2)
         change = nullities[d] - nullities[d - 1]
         if print_level >= 1
             Printf.@printf(
@@ -145,8 +167,7 @@ function solve_system(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}
             )
         end
         if d > mindegree && iszero(change)
-            basis = MB.MonomialBasis(monos)
-            sols = MM.solve_nullspace(Z', basis, 0, 0, MM.ShiftNullspace())
+            sols = MM.solve(Z, MM.ShiftNullspace())
             if !isnothing(sols)
                 return sols.elements
             end

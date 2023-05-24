@@ -38,7 +38,7 @@ nothing # hide
 
 # We don't find anything:
 
-extractatoms(M, 1e-4, ShiftNullspace())
+atomic_measure(M, 1e-4, ShiftNullspace())
 
 # With moment matrix of degree 7:
 
@@ -50,15 +50,15 @@ nothing # hide
 
 using Random
 Random.seed!(0)
-extractatoms(M, 1e-4, ShiftNullspace())
+atomic_measure(M, 1e-4, ShiftNullspace())
 
 # The second time, no luck:
 
-extractatoms(M, 1e-4, ShiftNullspace())
+atomic_measure(M, 1e-4, ShiftNullspace())
 
 # The third one contains the solutions `(0.5, 0.5, 0.8165, -0.8165)`
 # and `(0.5, 0.5, -0.8165, 0.8165)`:
 
-sols = extractatoms(M, 1e-4, ShiftNullspace())
+sols = atomic_measure(M, 1e-4, ShiftNullspace())
 @test check(sols, [0.5, 0.5, -0.81, 0.81]) #src
 @test check(sols, [0.5, 0.5, 0.81, -0.81]) #src

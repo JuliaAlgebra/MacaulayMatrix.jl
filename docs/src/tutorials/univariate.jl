@@ -43,4 +43,4 @@ M = moment_matrix(Z, solver, 2, monos)
 
 # From which we get:
 
-extractatoms(M, 1e-6)
+atomic_measure(M, 1e-6)
