@@ -34,7 +34,7 @@ Julia 1.9:
     - .script
     - .coverage
 pages:
-  image: julia:1.6
+  image: julia:1.9
   stage: deploy
   script:
     - |
