@@ -138,18 +138,21 @@ function macaulay_nullspace(polynomials::AbstractVector{<:MP.AbstractPolynomialL
         M, monos = macaulay_monomials(polynomials, maxdegree)
         Z, accuracy = _nullspace(M, args...)
     end
-    @info("Nullspace of degree $maxdegree of dimensions $(size(Z)) computed in $Δt seconds.")
+    @info("Nullspace of degree $maxdegree of dimensions $(size(Z)) computed from Macaulay matrix of dimension $(size(M)) in $Δt seconds.")
     return MM.MacaulayNullspace(Z, MB.MonomialBasis(monos), accuracy)
 end
 
 # Inspired from `macaulaylab.net/Code/solvesystemnullspace.m`
 function solve_system(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, maxdegree, args...; print_level=1) where {T}
+    @show @__LINE__
+    @show maxdegree
     mindegree = maximum(MP.maxdegree, polynomials)
     nullities = zeros(Int, maxdegree)
     Z = nothing
     Printf.@printf("\t | degree \t | nullity \t | increase \t |\n")
     Printf.@printf("\t |-----------------------------------------------|\n")
     for d in mindegree:maxdegree
+        @show d
         Z = macaulay_nullspace(polynomials, d, args...)
         nullities[d] = size(Z.matrix, 2)
         change = nullities[d] - nullities[d - 1]
@@ -183,7 +186,14 @@ SS.default_gröbner_basis_algorithm(::Any, ::Solver) = SS.NoAlgorithm()
 SS.promote_for(::Type{T}, ::Type{Solver}) where {T} = float(T)
 
 function SS.solve(V::SS.AbstractAlgebraicSet, solver::Solver)
-    return solve_system(V.polynomials, solver.maxdegree; print_level = solver.print_level)
+    polys = copy(SS.equalities(V))
+#    x = MP.variables(polys)
+#    @show x
+#    display(polys)
+#    push!(polys, sum(x) - 1)
+#    push!(polys, x[5])
+#    display(polys)
+    return solve_system(polys, solver.maxdegree; print_level = solver.print_level)
 end
 
 
