@@ -145,13 +145,8 @@ end
 # Inspired from `macaulaylab.net/Code/solvesystemnullspace.m`
 function solve_system(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, maxdegree, args...; print_level=1) where {T}
     mindegree = maximum(MP.maxdegree, polynomials)
-    n = MP.nvariables(polynomials)
     nullities = zeros(Int, maxdegree)
-    ma = mb = nothing
     Z = nothing
-    dgap = nothing
-    srows = nothing
-    monos = nothing
     Printf.@printf("\t | degree \t | nullity \t | increase \t |\n")
     Printf.@printf("\t |-----------------------------------------------|\n")
     for d in mindegree:maxdegree
@@ -175,6 +170,22 @@ function solve_system(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}
     end
     return
 end
+
+import SemialgebraicSets as SS
+struct Solver <: SS.AbstractAlgebraicSolver
+    maxdegree::Int
+    print_level::Int
+end
+Solver(maxdegree) = Solver(maxdegree, 1)
+
+SS.default_gröbner_basis_algorithm(::Any, ::Solver) = SS.NoAlgorithm()
+
+SS.promote_for(::Type{T}, ::Type{Solver}) where {T} = float(T)
+
+function SS.solve(V::SS.AbstractAlgebraicSet, solver::Solver)
+    return solve_system(V.polynomials, solver.maxdegree; print_level = solver.print_level)
+end
+
 
 # Taken from JuMP.jl
 # This package exports everything except internal symbols, which are defined as those
