@@ -26,16 +26,6 @@ function test_macaulay()
     @test M == M_expected
 end
 
-function runtests()
-    for name in names(@__MODULE__; all = true)
-        if startswith("$name", "test_")
-            @testset "$(name)" begin
-                getfield(@__MODULE__, name)()
-            end
-        end
-    end
-end
-
 # Taken from `macaulaylab.net/Database/Systems/dreesen1.m`
 function dreesen1()
     @polyvar x y
@@ -54,7 +44,6 @@ end
 
 function test_dreesen1() 
     ps = dreesen1()
-    vars = variables(ps)
     expected = [
         [4, -5],
         [3, -2],
@@ -96,6 +85,16 @@ function test_univariate()
             @test sols === nothing # FIXME
         else
             _test_sols(sols, [[exp]])
+        end
+    end
+end
+
+function runtests()
+    for name in names(@__MODULE__; all = true)
+        if startswith("$name", "test_")
+            @testset "$(name)" begin
+                getfield(@__MODULE__, name)()
+            end
         end
     end
 end
