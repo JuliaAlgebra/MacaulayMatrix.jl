@@ -144,15 +144,12 @@ end
 
 # Inspired from `macaulaylab.net/Code/solvesystemnullspace.m`
 function solve_system(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, maxdegree, args...; print_level=1) where {T}
-    @show @__LINE__
-    @show maxdegree
     mindegree = maximum(MP.maxdegree, polynomials)
     nullities = zeros(Int, maxdegree)
     Z = nothing
     Printf.@printf("\t | degree \t | nullity \t | increase \t |\n")
     Printf.@printf("\t |-----------------------------------------------|\n")
     for d in mindegree:maxdegree
-        @show d
         Z = macaulay_nullspace(polynomials, d, args...)
         nullities[d] = size(Z.matrix, 2)
         change = nullities[d] - nullities[d - 1]
@@ -187,12 +184,6 @@ SS.promote_for(::Type{T}, ::Type{Solver}) where {T} = float(T)
 
 function SS.solve(V::SS.AbstractAlgebraicSet, solver::Solver)
     polys = copy(SS.equalities(V))
-#    x = MP.variables(polys)
-#    @show x
-#    display(polys)
-#    push!(polys, sum(x) - 1)
-#    push!(polys, x[5])
-#    display(polys)
     return solve_system(polys, solver.maxdegree; print_level = solver.print_level)
 end
 

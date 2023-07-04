@@ -60,5 +60,6 @@ atomic_measure(M, 1e-4, ShiftNullspace())
 # and `(0.5, 0.5, -0.8165, 0.8165)`:
 
 sols = atomic_measure(M, 1e-4, ShiftNullspace())
+check(sols, x) = any(atom -> isapprox(atom.center, x, rtol=1e-2), sols.atoms)
 @test check(sols, [0.5, 0.5, -0.81, 0.81]) #src
 @test check(sols, [0.5, 0.5, 0.81, -0.81]) #src
