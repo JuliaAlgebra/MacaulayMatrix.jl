@@ -1,9 +1,36 @@
 module TestMacaulay
 
 using Test, TypedPolynomials
+import MultivariateBases as MB
 using Macaulay
 using JuMP
 import CSDP
+
+function __test_monomial_ideal_generators(standard, generators)
+    basis = MB.MonomialBasis(standard)
+    output = @inferred monomial_ideal_generators(basis)
+    @test output isa MB.MonomialBasis
+    # FIXME equality between `MB.MonomialBasis` does not work
+    # `MB.MonomialBasis(generators)` ensures the basis is sorted
+    @test output.monomials == MB.MonomialBasis(generators).monomials
+end
+
+function _test_monomial_ideal_generators(generators)
+    standard = filter(monomials(variables(generators), 0:sum(maxdegree(generators, v) for v in variables(generators)))) do mono
+        return !any(generators) do g
+            return divides(g, mono)
+        end
+    end
+    __test_monomial_ideal_generators(standard, generators)
+end
+
+function test_monomial_ideal_generators()
+    @polyvar x y z
+    _test_monomial_ideal_generators([x^0])
+    _test_monomial_ideal_generators([x^3])
+    _test_monomial_ideal_generators([x^3, x^2*y^2, y^3])
+    _test_monomial_ideal_generators([x^7, x^3 * z, x^2*z*y^2, y^8, y^3*z^2, z^7])
+end
 
 # Taken from `macaulaylab.net/Tests/testmacaulay.m`
 function test_macaulay()
