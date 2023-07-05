@@ -3,13 +3,6 @@
     - |
       julia --project=@. -e '
         using Pkg
-        Pkg.add([
-          PackageSpec(name="SemialgebraicSets", rev="master"),
-          PackageSpec(name="MultivariateMoments", rev="master"),
-          PackageSpec(name="MultivariatePolynomials", rev="master"),
-          PackageSpec(name="DynamicPolynomials", rev="master"),
-          PackageSpec(name="TypedPolynomials", rev="master"),
-        ])
         Pkg.build()
         Pkg.test(coverage=true)'
 .coverage:
@@ -34,18 +27,13 @@ Julia 1.9:
     - .script
     - .coverage
 pages:
-  image: julia:1.6
+  image: julia:1.9
   stage: deploy
   script:
     - |
       julia --project=docs -e '
         using Pkg
         Pkg.add([
-          PackageSpec(name="SemialgebraicSets", rev="master"),
-          PackageSpec(name="MultivariateMoments", rev="master"),
-          PackageSpec(name="MultivariatePolynomials", rev="master"),
-          PackageSpec(name="DynamicPolynomials", rev="master"),
-          PackageSpec(name="TypedPolynomials", rev="master"),
           PackageSpec(path=pwd()),
         ])
         Pkg.instantiate()

@@ -26,16 +26,6 @@ function test_macaulay()
     @test M == M_expected
 end
 
-function runtests()
-    for name in names(@__MODULE__; all = true)
-        if startswith("$name", "test_")
-            @testset "$(name)" begin
-                getfield(@__MODULE__, name)()
-            end
-        end
-    end
-end
-
 # Taken from `macaulaylab.net/Database/Systems/dreesen1.m`
 function dreesen1()
     @polyvar x y
@@ -54,7 +44,6 @@ end
 
 function test_dreesen1() 
     ps = dreesen1()
-    vars = variables(ps)
     expected = [
         [4, -5],
         [3, -2],
@@ -63,13 +52,17 @@ function test_dreesen1()
     ]
     solver = optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() => true)
     @testset "d=$d" for d in 3:5
-        sols = solve_system(ps, d)
-        _test_sols(sols, expected)
-        sols = psd_hankel(ps, solver, d)
-        if d == 3
-            @test sols === nothing
-        else
+        @testset "solve_system" begin
+            sols = solve_system(ps, d)
             _test_sols(sols, expected)
+        end
+        @testset "psd_hankel" begin
+            sols = psd_hankel(ps, solver, d)
+            if d == 3
+                @test sols === nothing
+            else
+                _test_sols(sols, expected)
+            end
         end
     end
 end
@@ -92,6 +85,16 @@ function test_univariate()
             @test sols === nothing # FIXME
         else
             _test_sols(sols, [[exp]])
+        end
+    end
+end
+
+function runtests()
+    for name in names(@__MODULE__; all = true)
+        if startswith("$name", "test_")
+            @testset "$(name)" begin
+                getfield(@__MODULE__, name)()
+            end
         end
     end
 end
