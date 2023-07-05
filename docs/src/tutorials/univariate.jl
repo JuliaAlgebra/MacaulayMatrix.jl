@@ -1,7 +1,7 @@
 # # Univariate
 
 using LinearAlgebra
-using TypedPolynomials
+using DynamicPolynomials
 using Macaulay
 using JuMP
 using MultivariateMoments
