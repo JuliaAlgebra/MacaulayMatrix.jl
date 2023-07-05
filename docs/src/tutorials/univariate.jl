@@ -2,9 +2,9 @@
 
 using LinearAlgebra
 using DynamicPolynomials
-using Macaulay
-using JuMP
 using MultivariateMoments
+using JuMP
+using Macaulay
 
 # Consider the following example:
 
@@ -28,18 +28,14 @@ solver = SCS.Optimizer
 psd_hankel([q], solver, 4)
 
 # What happened there ?
-# First, we computed the Macaulay matrix
+# First, we computed the Macaulay matrix nullspace
 
-M, monos = macaulay_monomials([q], 4)
-M
 
-# We then get the nullspace
-
-Z = nullspace(Matrix(M))
+Z = macaulay_nullspace([q], 4)
 
 # The PSD hankel matrix we find is:
 
-M = moment_matrix(Z, solver, 2, monos)
+M = moment_matrix(Z, solver, 2)
 
 # From which we get:
 
