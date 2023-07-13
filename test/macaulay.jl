@@ -78,13 +78,18 @@ function test_dreesen1()
         [0, -1],
         [1, 0],
     ]
-    solver = optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() => true)
     @testset "d=$d" for d in 3:5
-        @testset "solve_system" begin
-            sols = solve_system(ps, column_maxdegree = d)
+        @testset "solve_system $sparse_columns" for sparse_columns in [false, true]
+            solver = Solver(
+                column_maxdegree = d,
+                default_iteration = ColumnDegreeIteration(; sparse_columns),
+            )
+            s = Macaulay.SS.algebraic_set(ps, solver)
+            sols = collect(s)
             _test_sols(sols, expected)
         end
         @testset "psd_hankel" begin
+            solver = optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() => true)
             sols = psd_hankel(ps, solver, d)
             if d == 3
                 @test sols === nothing

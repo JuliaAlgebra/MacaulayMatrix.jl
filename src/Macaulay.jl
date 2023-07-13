@@ -12,7 +12,9 @@ import CommonSolve: solve, solve!, init, step!
 
 abstract type AbstractIteration end
 
-struct ColumnDegreeIteration <: AbstractIteration end
+Base.@kwdef struct ColumnDegreeIteration <: AbstractIteration
+    sparse_columns::Bool = true
+end
 
 import SemialgebraicSets as SS
 # `@kwdef` is not exported in Julia v1.6
@@ -100,7 +102,7 @@ end
 
 step!(s::Iterator) = step!(s, s.solver.default_iteration)
 
-function step!(s::Iterator, ::ColumnDegreeIteration)
+function step!(s::Iterator, it::ColumnDegreeIteration)
     if s.solver.max_iter > 0 && size(s.stats, 1) >= s.solver.max_iter
         s.status = MOI.ITERATION_LIMIT
         return
@@ -110,9 +112,9 @@ function step!(s::Iterator, ::ColumnDegreeIteration)
     for deg in mindegree:s.solver.column_maxdegree
         if deg == mindegree
             min = minimum(MP.maxdegree, s.matrix.polynomials)
-            added = fill_column_maxdegrees!(s.matrix, min:deg)
+            added = fill_column_maxdegrees!(s.matrix, min:deg; sparse_columns = it.sparse_columns)
         else
-            added = fill_column_maxdegree!(s.matrix, deg)
+            added = fill_column_maxdegree!(s.matrix, deg; sparse_columns = it.sparse_columns)
         end
         if !iszero(added)
             break

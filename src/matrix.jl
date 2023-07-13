@@ -67,10 +67,28 @@ function Base.size(M::MacaulayMatrix)
     return (size(M, 1), size(M, 2))
 end
 
-function fill_column_maxdegrees!(M::MacaulayMatrix, degs)
+function _merge_bases(a::MB.MonomialBasis, b::MB.MonomialBasis)
+    return MB.MonomialBasis(MP.merge_monomial_vectors([
+        a.monomials,
+        b.monomials,
+    ]))
+end
+
+"""
+    fill_column_maxdegrees!(M::MacaulayMatrix, degs, sparse_columns::Bool)
+
+Add the row shifts for which the maxdegree of the shifted polynomial would
+be in `degs`. If `sparse_columns` is `false` then all monomials of degree in
+`degs` will be added to the columns. Otherwise, only the columns that
+correspond to the monomial of one of the shifted polynomials will be added.
+"""
+function fill_column_maxdegrees!(M::MacaulayMatrix, degs; sparse_columns::Bool = true)
     vars = MP.variables(M.polynomials)
-    col_monos_to_add = Set{MP.monomial_type(eltype(M.polynomials))}()
-    row_monos_to_add = Dict{eltype(col_monos_to_add),Vector{ShiftStatus}}()
+    MT = MP.monomial_type(eltype(M.polynomials))
+    row_monos_to_add = Dict{MT,Vector{ShiftStatus}}()
+    if sparse_columns
+        col_monos_to_add = Set{MT}()
+    end
     added = 0
     for (j, poly) in enumerate(M.polynomials)
         d = MP.maxdegree(poly)
@@ -90,7 +108,7 @@ function fill_column_maxdegrees!(M::MacaulayMatrix, degs)
                     statuses[j] = INCLUDED
                     for mono in MP.monomials(poly)
                         col = shift * mono
-                        if isnothing(MM._monomial_index(M.column_basis.monomials, col)) && !(col in col_monos_to_add)
+                        if sparse_columns && isnothing(MM._monomial_index(M.column_basis.monomials, col)) && !(col in col_monos_to_add)
                             push!(col_monos_to_add, col)
                         end
                     end
@@ -98,19 +116,24 @@ function fill_column_maxdegrees!(M::MacaulayMatrix, degs)
             end
         end
     end
-    if !isempty(col_monos_to_add)
-        M.column_basis = MB.MonomialBasis(MP.merge_monomial_vectors([
-            M.column_basis.monomials,
-            MP.monomial_vector(collect(col_monos_to_add)),
-        ]))
+    cols_to_add = if sparse_columns
+        if isempty(col_monos_to_add)
+            nothing
+        else
+            M.column_basis = _merge_bases(
+                M.column_basis,
+                MB.MonomialBasis(collect(col_monos_to_add)),
+            )
+        end
+    else
+        M.column_basis = MB.MonomialBasis(MP.monomials(vars, 0:maximum(degs)))
     end
     if !isempty(row_monos_to_add)
-        added_row_monos = MP.monomial_vector(collect(keys(row_monos_to_add)))
         old_shifts = M.row_shifts
-        M.row_shifts = MB.MonomialBasis(MP.merge_monomial_vectors([
-            M.row_shifts.monomials,
-            added_row_monos,
-        ]))
+        M.row_shifts = _merge_bases(
+            M.row_shifts,
+            MB.MonomialBasis(collect(keys(row_monos_to_add))),
+        )
         old_statuses = M.shift_statuses
         M.shift_statuses = Vector{Vector{ShiftStatus}}(undef, length(M.row_shifts))
         for (shift, statuses) in zip(old_shifts.monomials, old_statuses)
@@ -125,11 +148,13 @@ function fill_column_maxdegrees!(M::MacaulayMatrix, degs)
     return added
 end
 
-fill_column_maxdegree!(M::MacaulayMatrix, d::Integer) = fill_column_maxdegrees!(M, d:d)
+function fill_column_maxdegree!(M::MacaulayMatrix, d::Integer; kws...)
+    return fill_column_maxdegrees!(M, d:d; kws...)
+end
 
-function macaulay(polynomials, maxdegree)
+function macaulay(polynomials, maxdegree; kws...)
     M = MacaulayMatrix(polynomials)
-    fill_column_maxdegrees!(M, 0:maxdegree)
+    fill_column_maxdegrees!(M, 0:maxdegree; kws...)
     return M
 end
 
