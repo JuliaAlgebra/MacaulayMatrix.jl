@@ -27,7 +27,7 @@ system = [
 # With the classical Macaulay approach, the nullity increases by 2 at every degree
 # because of the positive dimensional solution set at infinity.
 
-solve_system(system, 8)
+solve_system(system, column_maxdegree = 8)
 
 # With moment matrix of degree 6:
 

@@ -3,9 +3,12 @@ module Macaulay
 import LinearAlgebra, SparseArrays
 import MultivariatePolynomials as MP
 import MultivariateBases as MB
+import MathOptInterface as MOI
 import JuMP
 import MultivariateMoments as MM
 import Printf
+
+import CommonSolve: solve, solve!, init, step!
 
 """
     add_monomial_ideal_generators!(generators, standard_monomials, fixed, vars)
@@ -95,14 +98,29 @@ function realization_hankel(H::LinearAlgebra.Symmetric, monos)
     return realization_hankel(MM.MomentMatrix(H, monos))
 end
 
-function MM.moment_matrix(Z::MM.MacaulayNullspace, solver, d; print_level=1)
+function MM.moment_matrix(null::MM.MacaulayNullspace, solver, d; print_level=1)
+    # TODO Newton polytope
+    vars = MP.variables(null.basis.monomials)
+    monos = MP.monomials(vars, 0:2d)
     model = JuMP.Model(solver)
-    r = size(Z.matrix, 2)
-    JuMP.@variable(model, b[1:r])
+    r = size(null.matrix, 2)
+    # Number of roots at infinity that were left out by not adding these as columns
+    null = null[[mono for mono in monos if mono in null.basis.monomials]]
+    num_inf = length(monos) - size(null.matrix, 1)
+    JuMP.@variable(model, b[1:(r + num_inf)])
     JuMP.@constraint(model, sum(b) == 1)
-    Zb = Z.matrix * b
-    monos = Z.basis.monomials
-    gram_monos = MP.monomials(MP.variables(monos), 0:d)
+    inf_idx = 0
+    Zb = map(monos) do mono
+        idx = MM._monomial_index(null.basis.monomials, mono)
+        if isnothing(idx)
+            inf_idx += 1
+            return convert(JuMP.AffExpr, b[r + inf_idx])
+        else
+            return null.matrix[idx, :]' * b[1:r]
+        end
+    end
+    @assert inf_idx == num_inf
+    gram_monos = MP.monomials(vars, 0:d)
     H = LinearAlgebra.Symmetric([
         Zb[findfirst(isequal(gram_monos[i] * gram_monos[j]), monos)]
         for i in eachindex(gram_monos), j in eachindex(gram_monos)
@@ -124,7 +142,7 @@ function MM.moment_matrix(Z::MM.MacaulayNullspace, solver, d; print_level=1)
 end
 
 function MM.moment_matrix(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, solver, maxdegree) where {T}
-    Z = macaulay_nullspace(polynomials, maxdegree)
+    Z = LinearAlgebra.nullspace(macaulay(polynomials, maxdegree))
     return MM.moment_matrix(Z, solver, div(maxdegree, 2))
 end
 
@@ -136,107 +154,138 @@ function psd_hankel(args...)
     return realization_hankel(H)
 end
 
-macaulay(polynomials, maxdegree) = first(macaulay_monomials(polynomials, maxdegree))
+abstract type AbstractIteration end
 
-function macaulay_monomials(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, maxdegree) where {T}
-    vars = MP.variables(polynomials)
-    monos = MP.monomials(vars, 0:maxdegree)
-    column = Dict(monos[i] => i for i in eachindex(monos))
-    row = 0
-    I = Int[]
-    J = Int[]
-    K = T[]
-    for leading_mono in monos
-        for p in polynomials
-            lm = MP.leading_monomial(p)
-            if MP.divides(lm, leading_mono)
-                factor = MP.div_multiple(leading_mono, lm)
-                row += 1
-                for t in MP.terms(p)
-                    push!(I, row)
-                    push!(J, column[factor * MP.monomial(t)])
-                    push!(K, MP.coefficient(t))
-                end
-            end
-        end
-    end
-    return SparseArrays.sparse(I, J, K, row, length(monos)), monos
-end
-
-function _nullspace(
-    M::Matrix,
-    # This corresponds to the default of `LinearAlgebra.nullspace`
-    rank_check=MM.LeadingRelativeRankTol(min(size(M)...) * eps(real(float(oneunit(eltype(M)))))),
-)
-    m, n = size(M)
-    if iszero(m) || iszero(n)
-        Z = Matrix{LinearAlgebra.eigtype(eltype(A))}(LinearAlgebra.I, n, n)
-        accuracy = zero(T)
-    else
-        SVD = LinearAlgebra.svd(M; full=true)
-        r = MM.rank_from_singular_values(SVD.S, rank_check)
-        Z = (SVD.Vt[(r+1):end,:])'
-        accuracy = MM.accuracy(SVD.S, r, rank_check)
-    end
-    return Z, accuracy
-end
-
-_nullspace(M, args...) = _nullspace(Matrix(M), args...)
-
-function macaulay_nullspace(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, maxdegree, args...) where {T}
-    Δt = @elapsed begin
-        M, monos = macaulay_monomials(polynomials, maxdegree)
-        Z, accuracy = _nullspace(M, args...)
-    end
-    @info("Nullspace of degree $maxdegree of dimensions $(size(Z)) computed from Macaulay matrix of dimension $(size(M)) in $Δt seconds.")
-    return MM.MacaulayNullspace(Z, MB.MonomialBasis(monos), accuracy)
-end
-
-# Inspired from `macaulaylab.net/Code/solvesystemnullspace.m`
-function solve_system(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, maxdegree, args...; print_level=1) where {T}
-    mindegree = maximum(MP.maxdegree, polynomials)
-    nullities = zeros(Int, maxdegree)
-    Z = nothing
-    Printf.@printf("\t | degree \t | nullity \t | increase \t |\n")
-    Printf.@printf("\t |-----------------------------------------------|\n")
-    for d in mindegree:maxdegree
-        Z = macaulay_nullspace(polynomials, d, args...)
-        nullities[d] = size(Z.matrix, 2)
-        change = nullities[d] - nullities[d - 1]
-        if print_level >= 1
-            Printf.@printf(
-                "\t | %d \t \t | %d \t \t | %d \t \t |\n",
-                d,
-                nullities[d],
-                change,
-            )
-        end
-        if d > mindegree && iszero(change)
-            sols = MM.solve(Z, MM.ShiftNullspace())
-            if !isnothing(sols)
-                return sols.elements
-            end
-        end
-    end
-    return
-end
+struct ColumnDegreeIteration <: AbstractIteration end
 
 import SemialgebraicSets as SS
-struct Solver <: SS.AbstractAlgebraicSolver
-    maxdegree::Int
-    print_level::Int
+# `@kwdef` is not exported in Julia v1.6
+Base.@kwdef mutable struct Solver <: SS.AbstractAlgebraicSolver
+    default_iteration::AbstractIteration = ColumnDegreeIteration()
+    column_maxdegree::Int = 0
+    print_level::Int = 1
+    max_iter::Int = 10
+    rank_check::Union{Nothing,MM.RankCheck} = nothing
 end
-Solver(maxdegree) = Solver(maxdegree, 1)
 
 SS.default_gröbner_basis_algorithm(::Any, ::Solver) = SS.NoAlgorithm()
 
 SS.promote_for(::Type{T}, ::Type{Solver}) where {T} = float(T)
 
-function SS.solve(V::SS.AbstractAlgebraicSet, solver::Solver)
-    polys = copy(SS.equalities(V))
-    return solve_system(polys, solver.maxdegree; print_level = solver.print_level)
+import DataFrames
+
+include("matrix.jl")
+
+mutable struct Iterator{
+    T,
+    P<:MP.AbstractPolynomialLike,
+    V<:AbstractVector{P},
+    B,
+    U,
+}
+    matrix::MacaulayMatrix{T,P,V,B}
+    standard_monomials::Union{Nothing,B}
+    border_monomials::Union{Nothing,B}
+    solutions::Union{Nothing,Vector{Vector{U}}}
+    status::MOI.TerminationStatusCode
+    stats::DataFrames.DataFrame
+    solver::Solver
+    function Iterator(
+        matrix::MacaulayMatrix{T,P,V,B},
+        solver::Solver,
+    ) where {T,P,V,B}
+        U = SS.promote_for(T, Solver)
+        return new{T,P,V,B,U}(
+            matrix,
+            nothing,
+            nothing,
+            nothing,
+            MOI.OPTIMIZE_NOT_CALLED,
+            DataFrames.DataFrame(nullity = Int[], num_rows = Int[], num_cols = Int[]),
+            solver,
+        )
+    end
 end
 
+function Iterator(
+    polynomials::AbstractVector{<:MP.AbstractPolynomialLike},
+    solver::Solver,
+)
+    return Iterator(MacaulayMatrix(polynomials), solver)
+end
+
+function Base.show(io::IO, s::Iterator)
+    println(io, "Macaulay matrix solver. Last iteration considered:")
+    show(io, s.matrix)
+    println(io, "Current status is $(s.status)")
+    if !isnothing(s.solutions)
+        println(io, "Found $(length(s.solutions)) solutions:")
+        for sol in s.solutions
+            println(io, "  ", sol)
+        end
+    end
+    println(io, "History of iterations:")
+    show(io, s.stats)
+end
+
+init(V::SS.AbstractAlgebraicSet, solver::Solver) = Iterator(SS.equalities(V), solver)
+
+function solve!(s::Iterator)
+    while s.status == MOI.OPTIMIZE_NOT_CALLED
+        step!(s)
+    end
+    return s.solutions
+end
+
+# Inspired from `macaulaylab.net/Code/solvesystemnullspace.m`
+function solve_system(polynomials::AbstractVector{<:MP.AbstractPolynomialLike}; kws...)
+    return solve(SS.algebraic_set(polynomials, Solver(; kws...)))
+end
+
+step!(s::Iterator) = step!(s, s.solver.default_iteration)
+
+function step!(s::Iterator, ::ColumnDegreeIteration)
+    if s.solver.max_iter > 0 && size(s.stats, 1) >= s.solver.max_iter
+        s.status = MOI.ITERATION_LIMIT
+        return
+    end
+    mindegree = maximum(MP.maxdegree, s.matrix.polynomials)
+    added = 0
+    for deg in mindegree:s.solver.column_maxdegree
+        if deg == mindegree
+            min = minimum(MP.maxdegree, s.matrix.polynomials)
+            added = fill_column_maxdegrees!(s.matrix, min:deg)
+        else
+            added = fill_column_maxdegree!(s.matrix, deg)
+        end
+        if !iszero(added)
+            break
+        end
+    end
+    if iszero(added)
+        s.status = MOI.OTHER_LIMIT
+        return
+    end
+    if s.solver.print_level >= 3
+        display(s)
+    end
+    args = isnothing(s.solver.rank_check) ? tuple() : (s.solver.rank_check,)
+    Z = LinearAlgebra.nullspace(s.matrix, args...)
+    nullity = size(Z.matrix, 2)
+    if !isempty(s.stats.nullity) && nullity == s.stats.nullity[end]
+        sols = MM.solve(Z, MM.ShiftNullspace())
+        if !isnothing(sols)
+            s.solutions = collect(sols)
+            if isempty(s.solutions)
+                s.status = MOI.INFEASIBLE
+            else
+                s.status = MOI.OPTIMAL
+            end
+        end
+    end
+    push!(s.stats, [nullity, size(s.matrix)...])
+    return
+end
 
 # Taken from JuMP.jl
 # This package exports everything except internal symbols, which are defined as those
