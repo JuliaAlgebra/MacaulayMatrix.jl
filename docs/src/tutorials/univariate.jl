@@ -14,7 +14,7 @@ q = differentiate(p, x)
 
 # Let's solve that system:
 
-sols = solve_system([q], 4)
+sols = solve_system([q], column_maxdegree = 4)
 nothing # hide
 
 # The real roots are:
@@ -31,7 +31,7 @@ psd_hankel([q], solver, 4)
 # First, we computed the Macaulay matrix nullspace
 
 
-Z = macaulay_nullspace([q], 4)
+Z = nullspace(macaulay([q], 4))
 
 # The PSD hankel matrix we find is:
 

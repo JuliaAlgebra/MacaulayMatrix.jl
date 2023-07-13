@@ -24,7 +24,7 @@ system = [
 
 # We first try to solve the system:
 
-sols = solve_system(system, 6)
+sols = solve_system(system, column_maxdegree = 6)
 nothing # hide
 
 # The real solutions are

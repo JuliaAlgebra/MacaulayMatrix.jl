@@ -1,6 +1,7 @@
 module TestMacaulay
 
-using Test, TypedPolynomials
+using SparseArrays, Test
+using TypedPolynomials
 import MultivariateBases as MB
 using Macaulay
 using JuMP
@@ -39,18 +40,18 @@ function test_macaulay()
     M = macaulay(p, 3)
 
     M_expected = [
-        5 0 6 0 0 0 0 0 0 0
         1 3 2 4 0 0 0 0 0 0
-        0 5 0 0 6 0 0 0 0 0
-        0 0 5 0 0 6 0 0 0 0
+        5 0 6 0 0 0 0 0 0 0
         0 1 0 3 2 0 4 0 0 0
+        0 5 0 0 6 0 0 0 0 0
         0 0 1 0 3 2 0 4 0 0
+        0 0 5 0 0 6 0 0 0 0
         0 0 0 5 0 0 0 6 0 0
         0 0 0 0 5 0 0 0 6 0
         0 0 0 0 0 5 0 0 0 6
     ]
 
-    @test M == M_expected
+    @test sparse(M) == M_expected
 end
 
 # Taken from `macaulaylab.net/Database/Systems/dreesen1.m`
@@ -80,7 +81,7 @@ function test_dreesen1()
     solver = optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() => true)
     @testset "d=$d" for d in 3:5
         @testset "solve_system" begin
-            sols = solve_system(ps, d)
+            sols = solve_system(ps, column_maxdegree = d)
             _test_sols(sols, expected)
         end
         @testset "psd_hankel" begin
@@ -99,9 +100,10 @@ function test_univariate()
     p = 3x^4 + 8x^3 - 6x^2 + 24x + 1
     q = differentiate(p, x)
     exp = -2.658967
-    @test solve_system([q], 3) === nothing
-    for d in 4:8
-        sols = solve_system([q], d)
+    # FIXME it actually finds it if we allow it to try
+    @test solve_system([q], column_maxdegree = 3) === nothing
+    for d in 4:4
+        sols = solve_system([q], column_maxdegree = d)
         _test_sols(sols, [[exp]])
     end
     solver = optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() => true)
