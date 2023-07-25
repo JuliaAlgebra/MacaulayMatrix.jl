@@ -14,6 +14,7 @@ abstract type AbstractIteration end
 
 Base.@kwdef struct ColumnDegreeIteration <: AbstractIteration
     sparse_columns::Bool = true
+    wait_for_gap::Bool = false
 end
 
 import SemialgebraicSets as SS
@@ -24,6 +25,14 @@ Base.@kwdef mutable struct Solver <: SS.AbstractAlgebraicSolver
     print_level::Int = 1
     max_iter::Int = 10
     rank_check::Union{Nothing,MM.RankCheck} = nothing
+end
+
+function column_maxdegree(s::Solver, polys)
+    if iszero(s.column_maxdegree)
+        return sum(MP.maxdegree, polys) - length(polys) + 2
+    else
+        return s.column_maxdegree
+    end
 end
 
 SS.default_gröbner_basis_algorithm(::Any, ::Solver) = SS.NoAlgorithm()
@@ -43,7 +52,7 @@ mutable struct Iterator{
 }
     matrix::MacaulayMatrix{T,P,V,B}
     standard_monomials::Union{Nothing,B}
-    border_monomials::Union{Nothing,B}
+    corner_monomials::Union{Nothing,B}
     solutions::Union{Nothing,Vector{Vector{U}}}
     status::MOI.TerminationStatusCode
     stats::DataFrames.DataFrame
@@ -107,36 +116,48 @@ function step!(s::Iterator, it::ColumnDegreeIteration)
         s.status = MOI.ITERATION_LIMIT
         return
     end
-    mindegree = maximum(MP.maxdegree, s.matrix.polynomials)
+    mindeg = maximum(MP.maxdegree, s.matrix.polynomials)
+    maxdeg = column_maxdegree(s.solver, s.matrix.polynomials)
+    deg = mindeg - 1
     added = 0
-    for deg in mindegree:s.solver.column_maxdegree
-        if deg == mindegree
+    while iszero(added) && deg < maxdeg
+        deg += 1
+        if deg == mindeg
             min = minimum(MP.maxdegree, s.matrix.polynomials)
             added = fill_column_maxdegrees!(s.matrix, min:deg; sparse_columns = it.sparse_columns)
         else
             added = fill_column_maxdegree!(s.matrix, deg; sparse_columns = it.sparse_columns)
         end
-        if !iszero(added)
-            break
-        end
     end
     if iszero(added)
+        if s.solver.print_level >= 1
+            @info("Maximal column degree reached")
+        end
         s.status = MOI.OTHER_LIMIT
         return
+    end
+    if s.solver.print_level >= 1
+        @info("Added $added rows to complete columns up to degree $deg")
     end
     if s.solver.print_level >= 3
         display(s)
     end
     args = isnothing(s.solver.rank_check) ? tuple() : (s.solver.rank_check,)
-    Z = LinearAlgebra.nullspace(s.matrix, args...)
-    nullity = size(Z.matrix, 2)
-    if !isempty(s.stats.nullity) && nullity == s.stats.nullity[end]
-        sols = MM.solve(Z, MM.ShiftNullspace())
+    null = LinearAlgebra.nullspace(s.matrix, args...)
+    nullity = size(null.matrix, 2)
+    if !it.wait_for_gap || (!isempty(s.stats.nullity) && nullity == s.stats.nullity[end])
+        sols = MM.solve(null, MM.ShiftNullspace())
         if !isnothing(sols)
             s.solutions = collect(sols)
             if isempty(s.solutions)
+                if s.solver.print_level >= 1
+                    @info("Infeasible system")
+                end
                 s.status = MOI.INFEASIBLE
             else
+                if s.solver.print_level >= 1
+                    @info("Found $(length(s.solutions)) real solution$(isone(length(s.solutions)) ? "" : "s")")
+                end
                 s.status = MOI.OPTIMAL
             end
         end

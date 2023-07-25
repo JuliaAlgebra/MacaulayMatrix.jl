@@ -105,8 +105,8 @@ function test_univariate()
     p = 3x^4 + 8x^3 - 6x^2 + 24x + 1
     q = differentiate(p, x)
     exp = -2.658967
-    # FIXME it actually finds it if we allow it to try
-    @test solve_system([q], column_maxdegree = 3) === nothing
+    @test solve_system([q], column_maxdegree = 3, default_iteration = ColumnDegreeIteration(wait_for_gap = true)) === nothing
+    _test_sols(solve_system([q], column_maxdegree = 3), [[exp]])
     for d in 4:4
         sols = solve_system([q], column_maxdegree = d)
         _test_sols(sols, [[exp]])
