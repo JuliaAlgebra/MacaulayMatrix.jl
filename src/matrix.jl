@@ -116,10 +116,8 @@ function fill_column_maxdegrees!(M::MacaulayMatrix, degs; sparse_columns::Bool =
             end
         end
     end
-    cols_to_add = if sparse_columns
-        if isempty(col_monos_to_add)
-            nothing
-        else
+    if sparse_columns
+        if !isempty(col_monos_to_add)
             M.column_basis = _merge_bases(
                 M.column_basis,
                 MB.MonomialBasis(collect(col_monos_to_add)),
