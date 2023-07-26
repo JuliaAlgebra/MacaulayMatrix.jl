@@ -25,6 +25,7 @@ Base.@kwdef mutable struct Solver <: SS.AbstractAlgebraicSolver
     print_level::Int = 1
     max_iter::Int = 10
     rank_check::Union{Nothing,MM.RankCheck} = nothing
+    dependence::Type = MM.StaircaseDependence
 end
 
 function column_maxdegree(s::Solver, polys)
@@ -51,8 +52,8 @@ mutable struct Iterator{
     U,
 }
     matrix::MacaulayMatrix{T,P,V,B}
-    standard_monomials::Union{Nothing,B}
-    corner_monomials::Union{Nothing,B}
+    # Type not concrete as different iteration might give different type if the user changes the option
+    border::Union{Nothing,MM.BorderBasis}
     solutions::Union{Nothing,Vector{Vector{U}}}
     status::MOI.TerminationStatusCode
     stats::DataFrames.DataFrame
@@ -64,7 +65,6 @@ mutable struct Iterator{
         U = SS.promote_for(T, Solver)
         return new{T,P,V,B,U}(
             matrix,
-            nothing,
             nothing,
             nothing,
             MOI.OPTIMIZE_NOT_CALLED,
@@ -84,6 +84,9 @@ end
 function Base.show(io::IO, s::Iterator)
     println(io, "Macaulay matrix solver. Last iteration considered:")
     show(io, s.matrix)
+    if !isnothing(s.border)
+        println(io, s.border)
+    end
     println(io, "Current status is $(s.status)")
     if !isnothing(s.solutions)
         println(io, "Found $(length(s.solutions)) solutions:")
@@ -111,7 +114,10 @@ end
 
 step!(s::Iterator) = step!(s, s.solver.default_iteration)
 
-function step!(s::Iterator, it::ColumnDegreeIteration)
+_some_args(::Nothing) = tuple()
+_some_args(arg) = (arg,)
+
+function step!(s::Iterator, it::ColumnDegreeIteration = s.solver.default_iteration)
     if s.solver.max_iter > 0 && size(s.stats, 1) >= s.solver.max_iter
         s.status = MOI.ITERATION_LIMIT
         return
@@ -142,11 +148,12 @@ function step!(s::Iterator, it::ColumnDegreeIteration)
     if s.solver.print_level >= 3
         display(s)
     end
-    args = isnothing(s.solver.rank_check) ? tuple() : (s.solver.rank_check,)
-    null = LinearAlgebra.nullspace(s.matrix, args...)
+    null = LinearAlgebra.nullspace(s.matrix, _some_args(s.solver.rank_check)...)
     nullity = size(null.matrix, 2)
     if !it.wait_for_gap || (!isempty(s.stats.nullity) && nullity == s.stats.nullity[end])
-        sols = MM.solve(null, MM.ShiftNullspace())
+        rank_check = something(s.solver.rank_check, MM.LeadingRelativeRankTol(1e-8))
+        s.border = MM.BorderBasis{s.solver.dependence}(null, rank_check)
+        sols = MM.solve(s.border)
         if !isnothing(sols)
             s.solutions = collect(sols)
             if isempty(s.solutions)
@@ -192,6 +199,8 @@ for sym in names(@__MODULE__; all = true)
     end
     @eval export $sym
 end
+
+export init, step!, solve!
 
 include("H2/H2.jl")
 export H2

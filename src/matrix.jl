@@ -51,7 +51,7 @@ end
 
 function Base.size(M::MacaulayMatrix, i::Int)
     if i == 1
-        return sum(M.shift_statuses) do statuses
+        return sum(M.shift_statuses, init = 0) do statuses
             return count(statuses) do s
                 return s == INCLUDED || s == NOT_REDUNDANT
             end
