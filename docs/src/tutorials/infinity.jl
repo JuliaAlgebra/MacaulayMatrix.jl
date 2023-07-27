@@ -1,3 +1,7 @@
+# # Degree gap versus staircase gap
+#md # [![](https://mybinder.org/badge_logo.svg)](@__BINDER_ROOT_URL__/generated/infinity.ipynb)
+#md # [![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](@__NBVIEWER_ROOT_URL__/generated/infinity.ipynb)
+
 using TypedPolynomials
 using SemialgebraicSets
 import DynamicPolynomials
