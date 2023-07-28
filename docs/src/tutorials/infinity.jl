@@ -16,18 +16,33 @@ Random.seed!(80)
 
 using Macaulay
 sys_gap = system(4, Macaulay.Solver(default_iteration = ColumnDegreeIteration(sparse_columns = false, wait_for_gap = true)))
-collect(sys_gap)
+solutions = collect(sys_gap)
+nothing #hide
+
+# We find the expected solution
+
+solutions
 
 # If we don't wait for the gap, we get it earlier:
 
 using Macaulay
 sys = system(4, Macaulay.Solver(default_iteration = ColumnDegreeIteration(sparse_columns = false)))
-collect(sys)
+solutions = collect(sys)
+nothing #hide
+
+# We find the expected solution
+
+solutions
 
 # But we can actually also just use the 2 columns that are actually used:
 
 sys_sparse = system(4, Macaulay.Solver(default_iteration = ColumnDegreeIteration()))
-collect(sys_sparse)
+solutions = collect(sys_sparse)
+nothing #hide
+
+# We find the expected solution
+
+solutions
 
 # ## In more details
 
