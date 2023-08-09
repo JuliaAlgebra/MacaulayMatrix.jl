@@ -80,9 +80,9 @@ function test_dreesen1()
     ]
     @testset "d=$d" for d in 3:5
         @testset "solve_system $sparse_columns" for sparse_columns in [false, true]
-            solver = Solver(
+            solver = Solver(;
                 column_maxdegree = d,
-                default_iteration = ColumnDegreeIteration(; sparse_columns),
+                sparse_columns,
             )
             s = Macaulay.SS.algebraic_set(ps, solver)
             sols = collect(s)
@@ -105,7 +105,11 @@ function test_univariate()
     p = 3x^4 + 8x^3 - 6x^2 + 24x + 1
     q = differentiate(p, x)
     exp = -2.658967
-    @test solve_system([q], column_maxdegree = 3, default_iteration = ColumnDegreeIteration(wait_for_gap = true)) === nothing
+    @test solve_system(
+        [q],
+        column_maxdegree = 3,
+        wait_for_gap = true,
+    ) === nothing
     _test_sols(solve_system([q], column_maxdegree = 3), [[exp]])
     for d in 4:4
         sols = solve_system([q], column_maxdegree = d)

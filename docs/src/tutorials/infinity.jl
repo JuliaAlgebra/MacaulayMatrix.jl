@@ -15,7 +15,7 @@ Random.seed!(80)
 # Let's start with the classical approach with all columns up to degree 5 and waiting for the gap:
 
 using Macaulay
-sys_gap = system(4, Macaulay.Solver(default_iteration = ColumnDegreeIteration(sparse_columns = false, wait_for_gap = true)))
+sys_gap = system(4, Macaulay.Solver(sparse_columns = false, wait_for_gap = true))
 solutions = collect(sys_gap)
 nothing #hide
 
@@ -26,7 +26,7 @@ solutions
 # If we don't wait for the gap, we get it earlier:
 
 using Macaulay
-sys = system(4, Macaulay.Solver(default_iteration = ColumnDegreeIteration(sparse_columns = false)))
+sys = system(4, Macaulay.Solver(sparse_columns = false))
 solutions = collect(sys)
 nothing #hide
 
@@ -36,7 +36,7 @@ solutions
 
 # But we can actually also just use the 2 columns that are actually used:
 
-sys_sparse = system(4, Macaulay.Solver(default_iteration = ColumnDegreeIteration()))
+sys_sparse = system(4, Macaulay.Solver())
 solutions = collect(sys_sparse)
 nothing #hide
 
@@ -76,7 +76,7 @@ plot(solver_gap.border.dependence)
 # We can see that the monomials of larger degree have not been used here.
 # We can see them used with `AnyDependence` instead of `StaircaseDependence`
 
-solver_gap = init(sys_gap, Macaulay.Solver(dependence = Macaulay.MM.AnyDependence, default_iteration = ColumnDegreeIteration(sparse_columns = false, wait_for_gap = true)))
+solver_gap = init(sys_gap, Macaulay.Solver(dependence = Macaulay.MM.AnyDependence, sparse_columns = false, wait_for_gap = true))
 
 # Let's solve again but not all the step at once:
 
