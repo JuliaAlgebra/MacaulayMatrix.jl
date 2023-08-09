@@ -31,6 +31,52 @@ nothing # hide
 
 sols
 
+# ## Staicase analysis
+
+solver = Iterator(system, Macaulay.Solver())
+step!(solver)
+
+# We can see in the border dependence that even if `x^2` is a corner, the moment
+# matrix for `x` cannot be computed as `y^3` (resp. `z^2`, `z^3`) is standard but
+# `x * y^3` (resp. `x * z^2`, `x * z^3`) is indepedent.
+
+using Plots
+plot(solver.border.dependence)
+
+# Let's do another step:
+
+step!(solver)
+
+# This time, the blocker for computing the multiplication matrix for `x`
+# are `z^4` and `y * z^3`.
+
+using Plots
+plot(solver.border.dependence)
+
+# Let's do another step:
+
+step!(solver)
+
+# Now they are `z^5` and `y * z^4`
+
+using Plots
+plot(solver.border.dependence)
+
+# Let's do a last step:
+
+step!(solver)
+
+# Now we see that the whole border is dependent so the four
+# multiplication matrices can be computed.
+
+using Plots
+plot(solver.border.dependence)
+
+# In retrospect, we we probably should have expanded in priority towards larger
+# exponents for `z`.
+
+# ## Moment approach
+
 # With moment matrix of degree 3:
 
 import SCS

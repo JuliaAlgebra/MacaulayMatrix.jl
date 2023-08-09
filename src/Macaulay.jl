@@ -12,15 +12,12 @@ import CommonSolve: solve, solve!, init, step!
 
 abstract type AbstractIteration end
 
-Base.@kwdef struct ColumnDegreeIteration <: AbstractIteration
-    sparse_columns::Bool = true
-    wait_for_gap::Bool = false
-end
-
 import SemialgebraicSets as SS
 # `@kwdef` is not exported in Julia v1.6
 Base.@kwdef mutable struct Solver <: SS.AbstractAlgebraicSolver
-    default_iteration::AbstractIteration = ColumnDegreeIteration()
+    sparse_columns::Bool = true
+    wait_for_gap::Bool = false
+    default_iteration::Any = ColumnDegrees
     column_maxdegree::Int = 0
     print_level::Int = 1
     max_iter::Int = 10
@@ -117,11 +114,11 @@ step!(s::Iterator) = step!(s, s.solver.default_iteration)
 _some_args(::Nothing) = tuple()
 _some_args(arg) = (arg,)
 
-function step!(s::Iterator, it::ColumnDegreeIteration = s.solver.default_iteration)
-    if s.solver.max_iter > 0 && size(s.stats, 1) >= s.solver.max_iter
-        s.status = MOI.ITERATION_LIMIT
-        return
-    end
+function expand!(s::Iterator, sel::AbstractShiftsSelector)
+    return expand!(s.matrix, sel; sparse_columns = s.solver.sparse_columns)
+end
+
+function expand!(s::Iterator, ::Type{ColumnDegrees})
     mindeg = maximum(MP.maxdegree, s.matrix.polynomials)
     maxdeg = column_maxdegree(s.solver, s.matrix.polynomials)
     deg = mindeg - 1
@@ -130,11 +127,24 @@ function step!(s::Iterator, it::ColumnDegreeIteration = s.solver.default_iterati
         deg += 1
         if deg == mindeg
             min = minimum(MP.maxdegree, s.matrix.polynomials)
-            added = fill_column_maxdegrees!(s.matrix, min:deg; sparse_columns = it.sparse_columns)
+            degs = min:deg
         else
-            added = fill_column_maxdegree!(s.matrix, deg; sparse_columns = it.sparse_columns)
+            degs = deg:deg
         end
+        added = expand!(s, ColumnDegrees(degs))
     end
+    if added > 0 && s.solver.print_level >= 1
+        @info("Added $added rows to complete columns up to degree $deg")
+    end
+    return added
+end
+
+function step!(s::Iterator, it)
+    if s.solver.max_iter > 0 && size(s.stats, 1) >= s.solver.max_iter
+        s.status = MOI.ITERATION_LIMIT
+        return
+    end
+    added = expand!(s, it)
     if iszero(added)
         if s.solver.print_level >= 1
             @info("Maximal column degree reached")
@@ -142,15 +152,12 @@ function step!(s::Iterator, it::ColumnDegreeIteration = s.solver.default_iterati
         s.status = MOI.OTHER_LIMIT
         return
     end
-    if s.solver.print_level >= 1
-        @info("Added $added rows to complete columns up to degree $deg")
-    end
     if s.solver.print_level >= 3
         display(s)
     end
     null = LinearAlgebra.nullspace(s.matrix, _some_args(s.solver.rank_check)...)
     nullity = size(null.matrix, 2)
-    if !it.wait_for_gap || (!isempty(s.stats.nullity) && nullity == s.stats.nullity[end])
+    if !s.solver.wait_for_gap || (!isempty(s.stats.nullity) && nullity == s.stats.nullity[end])
         rank_check = something(s.solver.rank_check, MM.LeadingRelativeRankTol(1e-8))
         s.border = MM.BorderBasis{s.solver.dependence}(null, rank_check)
         sols = MM.solve(s.border)
