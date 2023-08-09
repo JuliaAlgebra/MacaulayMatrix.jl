@@ -90,14 +90,27 @@ function select_shifts(vars, poly, d::ColumnDegrees)
 
 end
 
+struct LeadingTargetColumns{M} <: AbstractShiftsSelector
+    targets::Vector{M}
+end
+
+function select_shifts(vars, poly, d::LeadingTargetColumns{M}) where {M}
+    mono = MP.leading_monomial(poly)
+    return M[
+        MP.div_multiple(target, mono)
+        for target in d.targets
+        if MP.divides(mono, target)
+    ]
+end
+
 struct TargetColumns{M} <: AbstractShiftsSelector
     targets::Vector{M}
 end
 
 function select_shifts(vars, poly, d::TargetColumns{M}) where {M}
-    mono = MP.leading_monomial(poly)
-    return M[
+    return promote_type(M, MP.monomial_type(poly))[
         MP.div_multiple(target, mono)
+        for mono in MP.monomials(poly)
         for target in d.targets
         if MP.divides(mono, target)
     ]
