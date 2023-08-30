@@ -37,6 +37,10 @@ function MacaulayMatrix(
     )
 end
 
+function MP.monomial_type(::Type{<:MacaulayMatrix{T,P}}) where {T,P}
+    return MP.monomial_type(P)
+end
+
 function Base.show(io::IO, M::MacaulayMatrix)
     num_rows, num_cols = size(M)
     println(io, "$(num_rows)×$(num_cols) Macaulay matrix for polynomials:")
@@ -107,6 +111,18 @@ struct TargetColumns{M} <: AbstractShiftsSelector
     targets::Vector{M}
 end
 
+"""
+    struct FirstStandardNonSaturated <: AbstractShiftsSelector
+        max_num::Int
+    end
+
+Select the first `max_num` standard monomials that are not saturated yet.
+"""
+struct FirstStandardNonSaturated <: AbstractShiftsSelector
+    max_num::Int
+end
+FirstStandardNonSaturated() = FirstStandardNonSaturated(1)
+
 function select_shifts(vars, poly, d::TargetColumns{M}) where {M}
     return promote_type(M, MP.monomial_type(poly))[
         MP.div_multiple(target, mono)
@@ -125,6 +141,40 @@ function select_shifts(vars, poly, d::FixedShifts)
 end
 
 """
+    is_forever_trivial(M::MacaulayMatrix, col::MP.AbstractMonomial)
+
+Return `true` if there does not exists any shift (even outside of
+`M.row_shifts`) that such that the shift of any of the polynomial
+has `col` as one of its monomial.
+"""
+function is_forever_trivial(M::MacaulayMatrix, col::MP.AbstractMonomial)
+    return !any(M.polynomials) do poly
+        return any(Base.Fix2(MP.divides, col), MP.monomials(poly))
+    end
+end
+
+"""
+    is_saturated(M::MacaulayMatrix, col::MP.AbstractMonomial; use_cache = true)
+
+Return `true` if all possible shift of a polynomial such that
+`col` is one of the shifted monomial have been included.
+"""
+function is_saturated(M::MacaulayMatrix, col::MP.AbstractMonomial)
+    for (j, poly) in enumerate(M.polynomials)
+        for mono in MP.monomials(poly)
+            if MP.divides(mono, col)
+                shift = MP.div_multiple(col, mono)
+                i = MM._index(M.row_shifts, shift)
+                if isnothing(i) || M.shift_statuses[i][j] == NOT_INCLUDED
+                    return false
+                end
+            end
+        end
+    end
+    return true
+end
+
+"""
     expand!(M::MacaulayMatrix, degs; sparse_columns::Bool = true)
 
 Add the row shifts for which the maxdegree of the shifted polynomial would
@@ -134,7 +184,7 @@ correspond to the monomial of one of the shifted polynomials will be added.
 """
 function expand!(M::MacaulayMatrix, shifts_selector; sparse_columns::Bool = true)
     vars = MP.variables(M.polynomials)
-    MT = MP.monomial_type(eltype(M.polynomials))
+    MT = MP.monomial_type(typeof(M))
     row_monos_to_add = Dict{MT,Vector{ShiftStatus}}()
     if sparse_columns
         col_monos_to_add = Set{MT}()
