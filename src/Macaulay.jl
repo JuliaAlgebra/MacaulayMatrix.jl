@@ -118,6 +118,38 @@ function expand!(s::Iterator, sel::AbstractShiftsSelector)
     return expand!(s.matrix, sel; sparse_columns = s.solver.sparse_columns)
 end
 
+function expand!(s::Iterator, sel::FirstStandardNonSaturated)
+    targets = MP.monomial_type(typeof(s.matrix))[]
+    for mono in MM.standard_basis(s.border.dependence).monomials
+        if length(targets) >= sel.max_num
+            break
+        end
+        # If we don't check for `is_forever_trivial` then we might
+        # think we are adding monomials but we add none and hence
+        # we won't make any progress
+        @show mono
+        @show is_saturated(s.matrix, mono) 
+        @show is_forever_trivial(s.matrix, mono)
+        if !is_saturated(s.matrix, mono) &&
+            !is_forever_trivial(s.matrix, mono)
+            push!(targets, mono)
+        end
+    end
+    if isempty(targets) && s.solver.print_level >= 1
+        @info("No candidate to saturate")
+        return 0
+    end
+    added = expand!(
+        s.matrix,
+        TargetColumns(targets);
+        sparse_columns = s.solver.sparse_columns,
+    )
+    if added > 0 && s.solver.print_level >= 1
+        @info("Added $added rows to saturate columns `$targets`")
+    end
+    return added
+end
+
 function expand!(s::Iterator, ::Type{ColumnDegrees})
     mindeg = maximum(MP.maxdegree, s.matrix.polynomials)
     maxdeg = column_maxdegree(s.solver, s.matrix.polynomials)
@@ -141,13 +173,16 @@ end
 
 function step!(s::Iterator, it)
     if s.solver.max_iter > 0 && size(s.stats, 1) >= s.solver.max_iter
+        if s.solver.print_level >= 1
+            @info("Reached iteration limit of $(s.solver.max_iter) iterations")
+        end
         s.status = MOI.ITERATION_LIMIT
         return
     end
     added = expand!(s, it)
     if iszero(added)
         if s.solver.print_level >= 1
-            @info("Maximal column degree reached")
+            @info("No row added")
         end
         s.status = MOI.OTHER_LIMIT
         return
@@ -180,6 +215,7 @@ function step!(s::Iterator, it)
     return
 end
 
+include("saturation.jl")
 include("hankel.jl")
 include("monomial_generators.jl")
 

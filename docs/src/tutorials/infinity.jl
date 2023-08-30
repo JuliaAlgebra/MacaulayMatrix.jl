@@ -71,12 +71,12 @@ solver_gap
 # The border dependence can be plotted for more visual inspection:
 
 using Plots
-plot(solver_gap.border.dependence)
+plot(saturated_dependence(solver_gap))
 
 # We can see that the monomials of larger degree have not been used here.
 # We can see them used with `AnyDependence` instead of `StaircaseDependence`
 
-solver_gap = init(sys_gap, Macaulay.Solver(dependence = Macaulay.MM.AnyDependence, sparse_columns = false, wait_for_gap = true))
+solver_gap = init(sys_gap, Macaulay.Solver(dependence = Macaulay.MM.LinearDependence, sparse_columns = false, wait_for_gap = true))
 
 # Let's solve again but not all the step at once:
 
@@ -86,7 +86,7 @@ solve!(solver_gap)
 # We can see that the degree 4 contains no independent as it is the gap zone.
 
 using Plots
-plot(solver_gap.border.dependence)
+plot(saturated_dependence(solver_gap))
 
 # ## Not waiting for the gap in more details
 
@@ -102,7 +102,7 @@ solver
 
 # The border dependence can be plotted for more visual inspection:
 
-plot(solver.border.dependence)
+plot(saturated_dependence(solver))
 
 # Even if there is no gap, the border is complete so we can get the multiplication matrices.
 
@@ -120,7 +120,7 @@ sparse_solver
 
 # The border dependence can be plotted for more visual inspection:
 
-plot(sparse_solver.border.dependence)
+plot(saturated_dependence(sparse_solver))
 
 # As we can see, for the sparse one, the standard monomials are "trivial"
 # because they are trivially detected as independent since they are not part of the basis.
