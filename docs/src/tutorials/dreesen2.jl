@@ -45,7 +45,6 @@ solver
 # `x * y^3` (resp. `x^2 * z^2`, `x * y * z^2`) is indepedent.
 
 using Plots
-plotly()
 plot(saturated_dependence(solver))
 
 # Let's do another step:
