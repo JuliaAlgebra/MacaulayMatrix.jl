@@ -127,9 +127,6 @@ function expand!(s::Iterator, sel::FirstStandardNonSaturated)
         # If we don't check for `is_forever_trivial` then we might
         # think we are adding monomials but we add none and hence
         # we won't make any progress
-        @show mono
-        @show is_saturated(s.matrix, mono) 
-        @show is_forever_trivial(s.matrix, mono)
         if !is_saturated(s.matrix, mono) &&
             !is_forever_trivial(s.matrix, mono)
             push!(targets, mono)
