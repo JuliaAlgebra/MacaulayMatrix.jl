@@ -242,6 +242,8 @@ end
 
 export init, step!, solve!
 
+include("cvp.jl")
+
 include("H2/H2.jl")
 export H2
 
