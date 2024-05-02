@@ -15,6 +15,7 @@ abstract type AbstractIteration end
 import SemialgebraicSets as SS
 # `@kwdef` is not exported in Julia v1.6
 Base.@kwdef mutable struct Solver <: SS.AbstractAlgebraicSolver
+    trim_to_border::Bool = false
     sparse_columns::Bool = true
     wait_for_gap::Bool = false
     default_iteration::Any = ColumnDegrees
@@ -189,9 +190,12 @@ function step!(s::Iterator, it)
     end
     null = LinearAlgebra.nullspace(s.matrix, _some_args(s.solver.rank_check)...)
     nullity = size(null.matrix, 2)
-    if !s.solver.wait_for_gap || (!isempty(s.stats.nullity) && nullity == s.stats.nullity[end])
+    try_solving = !s.solver.wait_for_gap || (!isempty(s.stats.nullity) && nullity == s.stats.nullity[end])
+    if s.solver.trim_to_border || try_solving
         rank_check = something(s.solver.rank_check, MM.LeadingRelativeRankTol(1e-8))
         s.border = MM.BorderBasis{s.solver.dependence}(null, rank_check)
+    end
+    if try_solving
         sols = MM.solve(s.border)
         if !isnothing(sols)
             s.solutions = collect(sols)
@@ -207,6 +211,33 @@ function step!(s::Iterator, it)
                 s.status = MOI.OPTIMAL
             end
         end
+    end
+    if s.solver.trim_to_border
+        dep = s.border.dependence
+        standard_and_border = MM.sub_basis(
+            dep,
+            findall(eachindex(dep.dependence)) do i
+                if isnothing(MM._index(null.basis, dep.basis.monomials[i]))
+                    return false
+                end
+                return MM.is_standard(dep.dependence[i]) || any(MP.variables(dep.basis)) do v
+                    mono = dep.basis.monomials[i]
+                    if MP.divides(v, mono)
+                        q = MP.div_multiple(mono, v)
+                        j = MM._index(dep.basis, q)
+                        if !isnothing(j) && MM.is_standard(dep.dependence[j])
+                            return true
+                        end
+                    end
+                    return false
+                end
+            end
+        )
+        trimmed_null = null[standard_and_border]
+        s.matrix = MacaulayMatrix(LinearAlgebra.nullspace(trimmed_null.matrix')' * standard_and_border.monomials)
+        # To at least add the unshifted polynomials otherwise the next iteration
+        # will do nothing
+        expand!(s, it)
     end
     push!(s.stats, [nullity, size(s.matrix)...])
     return
