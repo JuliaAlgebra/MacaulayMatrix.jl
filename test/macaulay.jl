@@ -58,7 +58,7 @@ end
 function dreesen1()
     @polyvar x y
     return [
-        -x^2 + 2x * y + y^2 + 5x - 3y - 4,
+        -x^2 + 2x * y + y^2 + 5x - 3y - 4.0,
          x^2 + 2x * y + y^2           - 1,
     ]
 end
@@ -80,13 +80,16 @@ function test_dreesen1()
     ]
     @testset "d=$d" for d in 3:5
         @testset "solve_system $sparse_columns" for sparse_columns in [false, true]
-            solver = Solver(;
-                column_maxdegree = d,
-                sparse_columns,
-            )
-            s = Macaulay.SS.algebraic_set(ps, solver)
-            sols = collect(s)
-            _test_sols(sols, expected)
+            @testset "trim_to_border $trim_to_border" for trim_to_border in [false, true]
+                solver = Solver(;
+                    trim_to_border,
+                    column_maxdegree = d,
+                    sparse_columns,
+                )
+                s = Macaulay.SS.algebraic_set(ps, solver)
+                sols = collect(s)
+                _test_sols(sols, expected)
+            end
         end
         @testset "psd_hankel" begin
             solver = optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() => true)
