@@ -67,10 +67,7 @@ A New Algorithm for L_2 Optimal Model Reduction,
 J.T. Spanos, M.H. Milman, D.L. Mingori
 (1992) - Automatica.
 """
-Spanos_1992_1() = ContinuousSISOTransferFunction(
-    [1, 15, 50],
-    [1, 5, 33, 79, 50],
-)
+Spanos_1992_1() = ContinuousSISOTransferFunction([1, 15, 50], [1, 5, 33, 79, 50])
 
 """
 A New Algorithm for L_2 Optimal Model Reduction,
@@ -88,10 +85,7 @@ H2 Model Reduction for Large-Scale Linear Dynamical Systems,
 S. Gugercin, A.C. Antoulas, and C. Beattie
 (2008) - SIAM Journal on Matrix Analysis and Applications.
 """
-FOM2() = ContinuousSISOTransferFunction(
-    [41, 50, 140],
-    [1, 11, 111, 110, 100],
-)
+FOM2() = ContinuousSISOTransferFunction([41, 50, 140], [1, 11, 111, 110, 100])
 
 """
 H2 model reduction for SISO systems,
@@ -108,10 +102,7 @@ Globally Optimal H2-Norm Model Reduction: A Numerical Linear Algebra Approach,
 O.M.Agudelo, V. Christof, B. De Moor
 (2021) - IFAC-PapersOnLine.
 """
-Mauricio() = ContinuousSISOTransferFunction(
-    [1, 9, -10],
-    [1, 12, 49, 78],
-)
+Mauricio() = ContinuousSISOTransferFunction([1, 9, -10], [1, 12, 49, 78])
 
 """
 Rational L_2 Approximation: A Non-Gradient Algorithm,
@@ -130,7 +121,10 @@ struct ContinuousStateSpace{T}
     D::Matrix{T}
 end
 
-function Base.convert(::Type{ContinuousSISOTransferFunction{T}}, s::ContinuousStateSpace) where {T}
+function Base.convert(
+    ::Type{ContinuousSISOTransferFunction{T}},
+    s::ContinuousStateSpace,
+) where {T}
     sys = ControlSystemsBase.tf(ControlSystemsBase.ss(s.A, s.B, s.C, s.D))
     sys = sys.matrix[1]
     return ContinuousSISOTransferFunction{T}(
@@ -188,7 +182,13 @@ function composeSystemWalsh(tf::SISOTransferFunction, q::Int)
 end
 
 
-function analyseSolutions(x::Vector{Vector{Float64}}, tf::SISOTransferFunction, q::Int, vars::Vector{<:MP.AbstractVariable}, tol::Float64=1e-5)
+function analyseSolutions(
+    x::Vector{Vector{Float64}},
+    tf::SISOTransferFunction,
+    q::Int,
+    vars::Vector{<:MP.AbstractVariable},
+    tol::Float64 = 1e-5,
+)
     n = length(tf.den) - 1
     k = length(x)
 
@@ -201,11 +201,12 @@ function analyseSolutions(x::Vector{Vector{Float64}}, tf::SISOTransferFunction, 
     costValues = Vector{Float64}(undef, k)
     validSols = []
 
-    for i = eachindex(x)
+    for i in eachindex(x)
         println("----- Solution i: $(i) -----")
         sol = x[i]
 
-        b_hat_s, a_hat_s = sol[q+1:q+q]' * monomials(s, 0:q-1), [1; sol[1:q]]' * monomials(s, 0:q)
+        b_hat_s, a_hat_s =
+            sol[q+1:q+q]' * monomials(s, 0:q-1), [1; sol[1:q]]' * monomials(s, 0:q)
         h_approx(y) = b_hat_s(s => y) ./ a_hat_s(s => y)
 
         # Use Polynomial.jl package to calculate roots of univariate polynomial:
@@ -216,20 +217,48 @@ function analyseSolutions(x::Vector{Vector{Float64}}, tf::SISOTransferFunction, 
         println("Estimating FONC:")
         tmp1, tmp2 = 0.0, 0.0
         @time begin
-            for j = collect(1:q)
+            for j in collect(1:q)
                 # Optimal zeros:
                 if tf isa DiscreteSISOTransferFunction
                     # Use 'atol' because I might be 0.
-                    I, est = QuadGK.quadgk(y -> (h_exact(exp(y * im)) - h_approx(exp(y * im))) * conj(1 ./ (exp(y * im) - poles[i][j])), -pi, pi, atol=1e-8)
+                    I, est = QuadGK.quadgk(
+                        y ->
+                            (h_exact(exp(y * im)) - h_approx(exp(y * im))) *
+                            conj(1 ./ (exp(y * im) - poles[i][j])),
+                        -pi,
+                        pi,
+                        atol = 1e-8,
+                    )
                 else
-                    I, est = QuadGK.quadgk(y -> (h_exact(y * im) - h_approx(y * im)) * conj(1 ./ (y * im - poles[i][j])), -Inf, Inf, atol=1e-8)
+                    I, est = QuadGK.quadgk(
+                        y ->
+                            (h_exact(y * im) - h_approx(y * im)) *
+                            conj(1 ./ (y * im - poles[i][j])),
+                        -Inf,
+                        Inf,
+                        atol = 1e-8,
+                    )
                 end
                 tmp1 += abs(1 / (2 * pi) * I)
                 # Optimal poles: 
                 if tf isa DiscreteSISOTransferFunction
-                    I, est = QuadGK.quadgk(y -> (h_exact(exp(y * im)) - h_approx(exp(y * im))) * conj(1 ./ (exp(y * im) - poles[i][j])^2), -pi, pi, atol=1e-8)
+                    I, est = QuadGK.quadgk(
+                        y ->
+                            (h_exact(exp(y * im)) - h_approx(exp(y * im))) *
+                            conj(1 ./ (exp(y * im) - poles[i][j])^2),
+                        -pi,
+                        pi,
+                        atol = 1e-8,
+                    )
                 else
-                    I, est = QuadGK.quadgk(y -> (h_exact(y * im) - h_approx(y * im)) * conj(1 ./ (y * im - poles[i][j])^2), -Inf, Inf, atol=1e-8)
+                    I, est = QuadGK.quadgk(
+                        y ->
+                            (h_exact(y * im) - h_approx(y * im)) *
+                            conj(1 ./ (y * im - poles[i][j])^2),
+                        -Inf,
+                        Inf,
+                        atol = 1e-8,
+                    )
                 end
                 tmp2 += abs(1 / (2 * pi) * I)
             end
@@ -239,9 +268,23 @@ function analyseSolutions(x::Vector{Vector{Float64}}, tf::SISOTransferFunction, 
 
         println("Computing J:")
         if tf isa DiscreteSISOTransferFunction
-            I, est = QuadGK.quadgk(y -> (h_approx(exp(y * im)) - h_exact(exp(y * im))) * conj(h_approx(exp(y * im)) - h_exact(exp(y * im))), -pi, pi, rtol=1e-10)
+            I, est = QuadGK.quadgk(
+                y ->
+                    (h_approx(exp(y * im)) - h_exact(exp(y * im))) *
+                    conj(h_approx(exp(y * im)) - h_exact(exp(y * im))),
+                -pi,
+                pi,
+                rtol = 1e-10,
+            )
         else
-            I, est = QuadGK.quadgk(y -> (h_approx(y * im) - h_exact(y * im)) * conj(h_approx(y * im) - h_exact(y * im)), -Inf, Inf, rtol=1e-10)
+            I, est = QuadGK.quadgk(
+                y ->
+                    (h_approx(y * im) - h_exact(y * im)) *
+                    conj(h_approx(y * im) - h_exact(y * im)),
+                -Inf,
+                Inf,
+                rtol = 1e-10,
+            )
         end
         println(I)
         costValues[i] = sqrt(1 / (2 * pi) * I)
@@ -249,9 +292,19 @@ function analyseSolutions(x::Vector{Vector{Float64}}, tf::SISOTransferFunction, 
 
     # Norm of higher order function:
     if tf isa DiscreteSISOTransferFunction
-        I, est = QuadGK.quadgk(y -> (h_exact(exp(y * im)) * conj(h_exact(exp(y * im)))), -pi, pi, rtol=1e-8)
+        I, est = QuadGK.quadgk(
+            y -> (h_exact(exp(y * im)) * conj(h_exact(exp(y * im)))),
+            -pi,
+            pi,
+            rtol = 1e-8,
+        )
     else
-        I, est = QuadGK.quadgk(y -> (h_exact(y * im) * conj(h_exact(y * im))), -Inf, Inf, rtol=1e-8)
+        I, est = QuadGK.quadgk(
+            y -> (h_exact(y * im) * conj(h_exact(y * im))),
+            -Inf,
+            Inf,
+            rtol = 1e-8,
+        )
     end
     h_norm = sqrt(1 / (2 * pi) * I)
 
@@ -265,7 +318,14 @@ function analyseSolutions(x::Vector{Vector{Float64}}, tf::SISOTransferFunction, 
     end
     println("** Norm of the exact tf: $(h_norm)")
 
-    res = TypedTables.Table(i=collect(1:k), f=costValues, f_rel=costValues ./ h_norm, opt=fonc, poles=poles, sol=x)
+    res = TypedTables.Table(
+        i = collect(1:k),
+        f = costValues,
+        f_rel = costValues ./ h_norm,
+        opt = fonc,
+        poles = poles,
+        sol = x,
+    )
 
     println("** Minimizing solution: $(findmin(costValues))")
 
@@ -393,10 +453,29 @@ function HomotopyH2_17()
     A[16, 17] = -0.028115589
 
     # Input matrix
-    B = [1.8631111; -1.1413786; -1.2105758; 0.31424169; 0.013307797; -0.211128913; 0.19552894; -0.037391511; -0.01049736; -0.011486242; -0.029376402; 0.0082391613; -0.012609562; -0.0022040505; -0.030853234; 0.011671662; 0]
+    B = [
+        1.8631111
+        -1.1413786
+        -1.2105758
+        0.31424169
+        0.013307797
+        -0.211128913
+        0.19552894
+        -0.037391511
+        -0.01049736
+        -0.011486242
+        -0.029376402
+        0.0082391613
+        -0.012609562
+        -0.0022040505
+        -0.030853234
+        0.011671662
+        0
+    ]
 
     # Output matrix
-    C = [-0.0097138566 0.0060463517 0.021760771 -0.0054538246 0.02179972 0.015063913 -0.01042631 -0.0088479697 0.030531575 0.030260987 0.016843335 0.011449591 0.1248007 -0.0005136047 0.035415526 0.028115589 184.79957]
+    C =
+        [-0.0097138566 0.0060463517 0.021760771 -0.0054538246 0.02179972 0.015063913 -0.01042631 -0.0088479697 0.030531575 0.030260987 0.016843335 0.011449591 0.1248007 -0.0005136047 0.035415526 0.028115589 184.79957]
     return ContinuousStateSpace(A, B, C, zeros(1, 1))
 end
 

@@ -15,14 +15,24 @@ function test_elim(T = Float64)
     @test x / x[1] ≈ [1, -1, 0] rtol = 1e-6
     x = MacaulayMatrix.eliminate_indices(M, [3], 2)
     @test x / x[1] ≈ [1, -1, 0] rtol = 1e-6
-    x = MacaulayMatrix.eliminate_indices(M, [3], 2, solver = MacaulayMatrix.Manopt.LevenbergMarquardt)
+    x = MacaulayMatrix.eliminate_indices(
+        M,
+        [3],
+        2,
+        solver = MacaulayMatrix.Manopt.LevenbergMarquardt,
+    )
     @test x / x[1] ≈ [1, -1, 0] rtol = 1e-6
     M = T[
         1 0 1 0
         0 1 0 1
         0 0 1 -1
     ]
-    x = MacaulayMatrix.eliminate_indices(M, [3, 4], 2; solver = MacaulayMatrix.Manopt.LevenbergMarquardt)
+    x = MacaulayMatrix.eliminate_indices(
+        M,
+        [3, 4],
+        2;
+        solver = MacaulayMatrix.Manopt.LevenbergMarquardt,
+    )
     @test x / x[1] ≈ [1, -1, 0, 0] rtol = 1e-6
 end
 
@@ -44,7 +54,10 @@ function test_cvp(T = Float64)
         end
         rank_checks = Any[nothing]
         if !ellipsoid
-            push!(rank_checks, MacaulayMatrix.MM.LeadingRelativeRankTol(Base.rtoldefault(Float64)))
+            push!(
+                rank_checks,
+                MacaulayMatrix.MM.LeadingRelativeRankTol(Base.rtoldefault(Float64)),
+            )
         end
         @testset "$(string(solver)[1:8])" for solver in solvers
             @testset "$(string(rank_check)[1:4])" for rank_check in rank_checks
@@ -56,7 +69,7 @@ function test_cvp(T = Float64)
                     vars = MP.effective_variables(c)
                     @test length(vars) == 1
                     σ = first(vars)
-                    @test c ≈ one(T) * σ - α + one(T) atol=1e-3
+                    @test c ≈ one(T) * σ - α + one(T) atol = 1e-3
                     @test ε < 1e-3
                 end
             end

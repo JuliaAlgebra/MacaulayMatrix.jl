@@ -8,12 +8,7 @@
 """
 @enum(ShiftStatus, NOT_INCLUDED, INCLUDED, NOT_REDUNDANT, REDUNDANT)
 
-mutable struct LazyMatrix{
-    T,
-    P<:MP.AbstractPolynomialLike,
-    V<:AbstractVector{P},
-    B,
-}
+mutable struct LazyMatrix{T,P<:MP.AbstractPolynomialLike,V<:AbstractVector{P},B}
     polynomials::V
     row_shifts::B
     shift_statuses::Vector{Vector{ShiftStatus}}
@@ -22,11 +17,7 @@ end
 
 function LazyMatrix(
     polynomials::V,
-) where {
-    T,
-    P<:MP.AbstractPolynomialLike{T},
-    V<:AbstractVector{P},
-}
+) where {T,P<:MP.AbstractPolynomialLike{T},V<:AbstractVector{P}}
     M = MP.monomial_type(polynomials)
     B = MB.MonomialBasis{M,MP.monomial_vector_type(M)}
     return LazyMatrix{T,P,V,B}(
@@ -72,10 +63,7 @@ function Base.size(M::LazyMatrix)
 end
 
 function _merge_bases(a::MB.MonomialBasis, b::MB.MonomialBasis)
-    return MB.MonomialBasis(MP.merge_monomial_vectors([
-        a.monomials,
-        b.monomials,
-    ]))
+    return MB.MonomialBasis(MP.merge_monomial_vectors([a.monomials, b.monomials]))
 end
 
 abstract type AbstractShiftsSelector end
@@ -101,9 +89,7 @@ end
 function select_shifts(vars, poly, d::LeadingTargetColumns{M}) where {M}
     mono = MP.leading_monomial(poly)
     return M[
-        MP.div_multiple(target, mono)
-        for target in d.targets
-        if MP.divides(mono, target)
+        MP.div_multiple(target, mono) for target in d.targets if MP.divides(mono, target)
     ]
 end
 
@@ -125,10 +111,8 @@ FirstStandardNonSaturated() = FirstStandardNonSaturated(1)
 
 function select_shifts(vars, poly, d::TargetColumns{M}) where {M}
     return promote_type(M, MP.monomial_type(poly))[
-        MP.div_multiple(target, mono)
-        for mono in MP.monomials(poly)
-        for target in d.targets
-        if MP.divides(mono, target)
+        MP.div_multiple(target, mono) for mono in MP.monomials(poly) for
+        target in d.targets if MP.divides(mono, target)
     ]
 end
 
@@ -227,20 +211,16 @@ function expand!(M::LazyMatrix, shifts_selector; sparse_columns::Bool = true)
     end
     if sparse_columns
         if !isempty(col_monos_to_add)
-            M.column_basis = _merge_bases(
-                M.column_basis,
-                MB.MonomialBasis(collect(col_monos_to_add)),
-            )
+            M.column_basis =
+                _merge_bases(M.column_basis, MB.MonomialBasis(collect(col_monos_to_add)))
         end
     else
         M.column_basis = MB.MonomialBasis(MP.monomials(vars, 0:col_maxdeg))
     end
     if !isempty(row_monos_to_add)
         old_shifts = M.row_shifts
-        M.row_shifts = _merge_bases(
-            M.row_shifts,
-            MB.MonomialBasis(collect(keys(row_monos_to_add))),
-        )
+        M.row_shifts =
+            _merge_bases(M.row_shifts, MB.MonomialBasis(collect(keys(row_monos_to_add))))
         old_statuses = M.shift_statuses
         M.shift_statuses = Vector{Vector{ShiftStatus}}(undef, length(M.row_shifts))
         for (shift, statuses) in zip(old_shifts.monomials, old_statuses)
@@ -262,7 +242,8 @@ function macaulay(polynomials, maxdegree; kws...)
 end
 
 function SparseArrays.sparse(M::LazyMatrix{T}) where {T}
-    column = Dict(M.column_basis.monomials[i] => i for i in eachindex(M.column_basis.monomials))
+    column =
+        Dict(M.column_basis.monomials[i] => i for i in eachindex(M.column_basis.monomials))
     row = 0
     I = Int[]
     J = Int[]
@@ -273,7 +254,7 @@ function SparseArrays.sparse(M::LazyMatrix{T}) where {T}
                 row += 1
                 for t in MP.terms(M.polynomials[j])
                     push!(I, row)
-                    push!(J, column[shift * MP.monomial(t)])
+                    push!(J, column[shift*MP.monomial(t)])
                     push!(K, MP.coefficient(t))
                 end
             end
@@ -286,7 +267,9 @@ end
 function _nullspace(
     M::Matrix,
     # This corresponds to the default of `LinearAlgebra.nullspace`
-    rank_check=MM.LeadingRelativeRankTol(min(size(M)...) * eps(real(float(oneunit(eltype(M)))))),
+    rank_check = MM.LeadingRelativeRankTol(
+        min(size(M)...) * eps(real(float(oneunit(eltype(M))))),
+    ),
 )
     m, n = size(M)
     if iszero(m) || iszero(n)
@@ -294,9 +277,9 @@ function _nullspace(
         Z = Matrix{T}(LinearAlgebra.I, n, n)
         accuracy = zero(T)
     else
-        SVD = LinearAlgebra.svd(M; full=true)
+        SVD = LinearAlgebra.svd(M; full = true)
         r = MM.rank_from_singular_values(SVD.S, rank_check)
-        Z = (SVD.Vt[(r+1):end,:])'
+        Z = (SVD.Vt[(r+1):end, :])'
         accuracy = MM.accuracy(SVD.S, r, rank_check)
     end
     return Z, accuracy
@@ -309,6 +292,8 @@ function LinearAlgebra.nullspace(M::LazyMatrix, args...)
         S = SparseArrays.sparse(M)
         Z, accuracy = _nullspace(S, args...)
     end
-    @info("Nullspace of dimensions $(size(Z)) computed from Macaulay matrix of dimension $(size(S)) in $Δt seconds.")
+    @info(
+        "Nullspace of dimensions $(size(Z)) computed from Macaulay matrix of dimension $(size(S)) in $Δt seconds."
+    )
     return MM.MacaulayNullspace(Z, M.column_basis, accuracy)
 end
