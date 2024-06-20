@@ -146,7 +146,7 @@ function _zero_constant(p)
     return iszero(MP.coefficient(p, MP.constant_monomial(p)))
 end
 
-function pure_σ_rows(M::MacaulayMatrix, i::Int, σ::MP.AbstractVariable)
+function pure_σ_rows(M::LazyMatrix, i::Int, σ::MP.AbstractVariable)
     σ_rows = Int[]
     other_rows = Int[]
     row = 0

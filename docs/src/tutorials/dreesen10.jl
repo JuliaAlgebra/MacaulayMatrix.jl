@@ -10,11 +10,11 @@
 using Test #src
 using LinearAlgebra
 using TypedPolynomials
-using Macaulay
+using MacaulayMatrix
 using JuMP
 using MultivariateMoments
 
-# Consider the system given in [D13, Example 6.14] which corresponds to `Systems/dreesen10` of [macaulaylab](http://www.macaulaylab.net/):
+# Consider the system given in [D13, Example 6.14] which corresponds to `Systems/dreesen10` of [MacaulayMatrixlab](http://www.MacaulayMatrixlab.net/):
 
 @polyvar x[1:4]
 system = [
@@ -24,7 +24,7 @@ system = [
     x[1] * x[3]^3 + x[2] * x[4]^3,
 ]
 
-# With the classical Macaulay approach, the nullity increases by 2 at every degree
+# With the classical MacaulayMatrix approach, the nullity increases by 2 at every degree
 # because of the positive dimensional solution set at infinity.
 
 solve_system(system, column_maxdegree = 8)

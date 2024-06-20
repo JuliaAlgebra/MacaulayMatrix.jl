@@ -1,7 +1,7 @@
 module TestH2
 
 using Test
-using Macaulay
+using MacaulayMatrix
 
 function test_Mauricio()
     system, vars = H2.composeSystemWalsh(H2.Mauricio(), 1)

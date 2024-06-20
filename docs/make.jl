@@ -1,4 +1,4 @@
-using Macaulay
+using MacaulayMatrix
 using Documenter
 import Literate
 
@@ -16,16 +16,16 @@ end
 
 literate_directory()
 
-DocMeta.setdocmeta!(Macaulay, :DocTestSetup, :(using Macaulay); recursive=true)
+DocMeta.setdocmeta!(MacaulayMatrix, :DocTestSetup, :(using MacaulayMatrix); recursive=true)
 
 makedocs(;
-    modules=[Macaulay],
+    modules=[MacaulayMatrix],
     authors="Benoît Legat <benoit.legat@gmail.com> and contributors",
-    repo="https://gitlab.esat.kuleuven.be/benoit.legat/Macaulay.jl/blob/{commit}{path}#{line}",
-    sitename="Macaulay.jl",
+    repo="https://gitlab.esat.kuleuven.be/benoit.legat/MacaulayMatrix.jl/blob/{commit}{path}#{line}",
+    sitename="MacaulayMatrix.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://gitlab.esat.kuleuven.be/benoit.legat/Macaulay.jl",
+        canonical="https://gitlab.esat.kuleuven.be/benoit.legat/MacaulayMatrix.jl",
         edit_link="main",
         assets=String[],
     ),
@@ -42,6 +42,6 @@ makedocs(;
 )
 
 deploydocs(
-    repo   = "gitlab.esat.kuleuven.be:benoit.legat/Macaulay.jl.git",
+    repo   = "gitlab.esat.kuleuven.be:benoit.legat/MacaulayMatrix.jl.git",
     push_preview = true,
 )

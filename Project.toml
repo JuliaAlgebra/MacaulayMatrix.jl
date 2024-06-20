@@ -1,4 +1,4 @@
-name = "Macaulay"
+name = "MacaulayMatrix"
 uuid = "bcb046b7-f005-4e9a-a986-fb3acd014398"
 authors = ["Benoît Legat <benoit.legat@gmail.com>"]
 version = "0.1.0"

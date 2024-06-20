@@ -3,7 +3,7 @@
 #
 # (c) Sibren Lagauw, 2023.
 
-using Macaulay
+using MacaulayMatrix
 
 # Create system of equations:
 m = 3

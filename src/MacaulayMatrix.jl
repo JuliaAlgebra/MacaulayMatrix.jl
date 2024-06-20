@@ -1,4 +1,4 @@
-module Macaulay
+module MacaulayMatrix
 
 import LinearAlgebra, SparseArrays
 import MultivariatePolynomials as MP
@@ -49,7 +49,7 @@ mutable struct Iterator{
     B,
     U,
 }
-    matrix::MacaulayMatrix{T,P,V,B}
+    matrix::LazyMatrix{T,P,V,B}
     # Type not concrete as different iteration might give different type if the user changes the option
     border::Union{Nothing,MM.BorderBasis}
     solutions::Union{Nothing,Vector{Vector{U}}}
@@ -57,7 +57,7 @@ mutable struct Iterator{
     stats::DataFrames.DataFrame
     solver::Solver
     function Iterator(
-        matrix::MacaulayMatrix{T,P,V,B},
+        matrix::LazyMatrix{T,P,V,B},
         solver::Solver,
     ) where {T,P,V,B}
         U = SS.promote_for(T, Solver)
@@ -76,11 +76,11 @@ function Iterator(
     polynomials::AbstractVector{<:MP.AbstractPolynomialLike},
     solver::Solver,
 )
-    return Iterator(MacaulayMatrix(polynomials), solver)
+    return Iterator(LazyMatrix(polynomials), solver)
 end
 
 function Base.show(io::IO, s::Iterator)
-    println(io, "Macaulay matrix solver. Last iteration considered:")
+    println(io, "MacaulayMatrix matrix solver. Last iteration considered:")
     show(io, s.matrix)
     if !isnothing(s.border)
         println(io, s.border)
@@ -234,7 +234,7 @@ function step!(s::Iterator, it)
             end
         )
         trimmed_null = null[standard_and_border]
-        s.matrix = MacaulayMatrix(LinearAlgebra.nullspace(trimmed_null.matrix')' * standard_and_border.monomials)
+        s.matrix = LazyMatrix(LinearAlgebra.nullspace(trimmed_null.matrix')' * standard_and_border.monomials)
         # To at least add the unshifted polynomials otherwise the next iteration
         # will do nothing
         expand!(s, it)
@@ -278,4 +278,4 @@ include("cvp.jl")
 include("H2/H2.jl")
 export H2
 
-end # module Macaulay
+end # module MacaulayMatrix

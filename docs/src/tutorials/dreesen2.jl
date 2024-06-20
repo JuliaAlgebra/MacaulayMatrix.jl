@@ -9,11 +9,11 @@
 
 using LinearAlgebra
 using TypedPolynomials
-using Macaulay
+using MacaulayMatrix
 using JuMP
 using MultivariateMoments
 
-# Consider the system given in [D13, (2.3)] which corresponds to `Systems/dreesen2` of [macaulaylab](http://www.macaulaylab.net/):
+# Consider the system given in [D13, (2.3)] which corresponds to `Systems/dreesen2` of [MacaulayMatrixlab](http://www.MacaulayMatrixlab.net/):
 
 @polyvar x y z
 system = [
@@ -33,7 +33,7 @@ sols
 
 # ## Staicase analysis
 
-solver = Iterator(system, Macaulay.Solver())
+solver = Iterator(system, MacaulayMatrix.Solver())
 step!(solver)
 
 # We can look at the solver as follows:
@@ -80,7 +80,7 @@ plot(saturated_dependence(solver))
 #
 # Let's start again by starting with the same first stop.
 
-solver = Iterator(system, Macaulay.Solver())
+solver = Iterator(system, MacaulayMatrix.Solver())
 step!(solver)
 
 # This time, let's focus on saturating the first
@@ -119,13 +119,13 @@ plot(saturated_dependence(solver))
 # We can see that this does not seem to work.
 # By saturating a monomial,
 # we generate all the rows that have a nonzero entry for the corresponding
-# column in the Macaulay matrix.
+# column in the MacaulayMatrix matrix.
 # If the monomial is standard, it means that the column is a linear combination of other columns
-# (which are dependent in the Macaulay Nullspace)
-# of the Macaulay matrix.
+# (which are dependent in the MacaulayMatrix Nullspace)
+# of the MacaulayMatrix matrix.
 # If we saturate these other columns, the linear combination may not work anymore.
 # But we are only saturating the standard monomials, we don't saturate
-# the rows that are dependent in the Macaulay Nullspace which explains
+# the rows that are dependent in the MacaulayMatrix Nullspace which explains
 # the result we have seen here.
 
 # ## Moment approach

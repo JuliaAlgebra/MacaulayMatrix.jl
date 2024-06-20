@@ -8,7 +8,7 @@
 """
 @enum(ShiftStatus, NOT_INCLUDED, INCLUDED, NOT_REDUNDANT, REDUNDANT)
 
-mutable struct MacaulayMatrix{
+mutable struct LazyMatrix{
     T,
     P<:MP.AbstractPolynomialLike,
     V<:AbstractVector{P},
@@ -20,7 +20,7 @@ mutable struct MacaulayMatrix{
     column_basis::B
 end
 
-function MacaulayMatrix(
+function LazyMatrix(
     polynomials::V,
 ) where {
     T,
@@ -29,7 +29,7 @@ function MacaulayMatrix(
 }
     M = MP.monomial_type(polynomials)
     B = MB.MonomialBasis{M,MP.monomial_vector_type(M)}
-    return MacaulayMatrix{T,P,V,B}(
+    return LazyMatrix{T,P,V,B}(
         polynomials,
         MB.empty_basis(B),
         Vector{ShiftStatus}[],
@@ -37,11 +37,11 @@ function MacaulayMatrix(
     )
 end
 
-function MP.monomial_type(::Type{<:MacaulayMatrix{T,P}}) where {T,P}
+function MP.monomial_type(::Type{<:LazyMatrix{T,P}}) where {T,P}
     return MP.monomial_type(P)
 end
 
-function Base.show(io::IO, M::MacaulayMatrix)
+function Base.show(io::IO, M::LazyMatrix)
     num_rows, num_cols = size(M)
     println(io, "$(num_rows)×$(num_cols) Macaulay matrix for polynomials:")
     for poly in M.polynomials
@@ -53,7 +53,7 @@ function Base.show(io::IO, M::MacaulayMatrix)
     println(io, M.column_basis)
 end
 
-function Base.size(M::MacaulayMatrix, i::Int)
+function Base.size(M::LazyMatrix, i::Int)
     if i == 1
         return sum(M.shift_statuses, init = 0) do statuses
             return count(statuses) do s
@@ -67,7 +67,7 @@ function Base.size(M::MacaulayMatrix, i::Int)
     end
 end
 
-function Base.size(M::MacaulayMatrix)
+function Base.size(M::LazyMatrix)
     return (size(M, 1), size(M, 2))
 end
 
@@ -141,25 +141,25 @@ function select_shifts(vars, poly, d::FixedShifts)
 end
 
 """
-    is_forever_trivial(M::MacaulayMatrix, col::MP.AbstractMonomial)
+    is_forever_trivial(M::LazyMatrix, col::MP.AbstractMonomial)
 
 Return `true` if there does not exists any shift (even outside of
 `M.row_shifts`) that such that the shift of any of the polynomial
 has `col` as one of its monomial.
 """
-function is_forever_trivial(M::MacaulayMatrix, col::MP.AbstractMonomial)
+function is_forever_trivial(M::LazyMatrix, col::MP.AbstractMonomial)
     return !any(M.polynomials) do poly
         return any(Base.Fix2(MP.divides, col), MP.monomials(poly))
     end
 end
 
 """
-    is_saturated(M::MacaulayMatrix, col::MP.AbstractMonomial; use_cache = true)
+    is_saturated(M::LazyMatrix, col::MP.AbstractMonomial; use_cache = true)
 
 Return `true` if all possible shift of a polynomial such that
 `col` is one of the shifted monomial have been included.
 """
-function is_saturated(M::MacaulayMatrix, col::MP.AbstractMonomial)
+function is_saturated(M::LazyMatrix, col::MP.AbstractMonomial)
     for (j, poly) in enumerate(M.polynomials)
         for mono in MP.monomials(poly)
             if MP.divides(mono, col)
@@ -175,14 +175,14 @@ function is_saturated(M::MacaulayMatrix, col::MP.AbstractMonomial)
 end
 
 """
-    expand!(M::MacaulayMatrix, degs; sparse_columns::Bool = true)
+    expand!(M::LazyMatrix, degs; sparse_columns::Bool = true)
 
 Add the row shifts for which the maxdegree of the shifted polynomial would
 be in `degs`. If `sparse_columns` is `false` then all monomials of degree in
 `degs` will be added to the columns. Otherwise, only the columns that
 correspond to the monomial of one of the shifted polynomials will be added.
 """
-function expand!(M::MacaulayMatrix, shifts_selector; sparse_columns::Bool = true)
+function expand!(M::LazyMatrix, shifts_selector; sparse_columns::Bool = true)
     vars = MP.variables(M.polynomials)
     MT = MP.monomial_type(typeof(M))
     row_monos_to_add = Dict{MT,Vector{ShiftStatus}}()
@@ -256,12 +256,12 @@ function expand!(M::MacaulayMatrix, shifts_selector; sparse_columns::Bool = true
 end
 
 function macaulay(polynomials, maxdegree; kws...)
-    M = MacaulayMatrix(polynomials)
+    M = LazyMatrix(polynomials)
     expand!(M, ColumnDegrees(0:maxdegree); kws...)
     return M
 end
 
-function SparseArrays.sparse(M::MacaulayMatrix{T}) where {T}
+function SparseArrays.sparse(M::LazyMatrix{T}) where {T}
     column = Dict(M.column_basis.monomials[i] => i for i in eachindex(M.column_basis.monomials))
     row = 0
     I = Int[]
@@ -304,7 +304,7 @@ end
 
 _nullspace(M, args...) = _nullspace(Matrix(M), args...)
 
-function LinearAlgebra.nullspace(M::MacaulayMatrix, args...)
+function LinearAlgebra.nullspace(M::LazyMatrix, args...)
     Δt = @elapsed begin
         S = SparseArrays.sparse(M)
         Z, accuracy = _nullspace(S, args...)
