@@ -13,7 +13,7 @@ using MacaulayMatrix
 using JuMP
 using MultivariateMoments
 
-# Consider the system given in [D13, (2.3)] which corresponds to `Systems/dreesen2` of [MacaulayMatrixlab](http://www.MacaulayMatrixlab.net/):
+# Consider the system given in [D13, (2.3)] which corresponds to `Systems/dreesen2` of [macaulaylab](http://www.macaulaylab.net/):
 
 @polyvar x y z
 system = [

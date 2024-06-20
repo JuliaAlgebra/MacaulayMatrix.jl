@@ -31,7 +31,7 @@ psd_hankel([q], solver, 4)
 # First, we computed the MacaulayMatrix matrix nullspace
 
 
-Z = nullspace(MacaulayMatrix([q], 4))
+Z = nullspace(macaulay([q], 4))
 
 # The PSD hankel matrix we find is:
 

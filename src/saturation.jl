@@ -36,8 +36,8 @@ function saturated_dependence(s::Iterator)
     return MM.BasisDependence(
         dep.basis,
         Saturation[
-            Saturation(dep.dependence[i], is_saturated(s.matrix, mono))
-            for (i, mono) in enumerate(dep.basis.monomials)
+            Saturation(dep.dependence[i], is_saturated(s.matrix, mono)) for
+            (i, mono) in enumerate(dep.basis.monomials)
         ],
     )
 end

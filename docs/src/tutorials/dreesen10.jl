@@ -14,7 +14,7 @@ using MacaulayMatrix
 using JuMP
 using MultivariateMoments
 
-# Consider the system given in [D13, Example 6.14] which corresponds to `Systems/dreesen10` of [MacaulayMatrixlab](http://www.MacaulayMatrixlab.net/):
+# Consider the system given in [D13, Example 6.14] which corresponds to `Systems/dreesen10` of [macaulaylab](http://www.macaulaylab.net/):
 
 @polyvar x[1:4]
 system = [
@@ -28,40 +28,3 @@ system = [
 # because of the positive dimensional solution set at infinity.
 
 solve_system(system, column_maxdegree = 8)
-
-# With moment matrix of degree 6:
-
-## FIXME failing on ci but working locally, try again with better condition with cheby basis
-## import SCS
-## solver = SCS.Optimizer
-## M = moment_matrix(system, solver, 6)
-## nothing # hide
-## 
-## # We don't find anything:
-## 
-## atomic_measure(M, 1e-4, ShiftNullspace())
-## 
-## # With moment matrix of degree 7:
-## 
-## M = moment_matrix(system, solver, 7)
-## nothing # hide
-## 
-## # We get different solutions for different runs because of the random combinations of multiplication matrices:
-## # so let's fix the seed to make it reproducible:
-## 
-## using Random
-## Random.seed!(0)
-## atomic_measure(M, 1e-4, ShiftNullspace())
-## 
-## # The second time, no luck:
-## 
-## atomic_measure(M, 1e-4, ShiftNullspace())
-## 
-## # The third one contains the solutions `(0.5, 0.5, 0.8165, -0.8165)`
-## # and `(0.5, 0.5, -0.8165, 0.8165)`:
-## 
-## sols = atomic_measure(M, 1e-4, ShiftNullspace())
-## check(sols, x) = any(atom -> isapprox(atom.center, x, rtol=1e-2), sols.atoms)
-## @test check(sols, [0.5, 0.5, -0.81, 0.81]) #src
-## @test check(sols, [0.5, 0.5, 0.81, -0.81]) #src
-## 
