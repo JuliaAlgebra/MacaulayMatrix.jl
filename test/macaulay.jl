@@ -38,7 +38,7 @@ function test_monomial_ideal_generators()
     _test_monomial_ideal_generators([x^7, x^3 * z, x^2 * z * y^2, y^8, y^3 * z^2, z^7])
 end
 
-# Taken from `MacaulayMatrixlab.net/Tests/testMacaulayMatrix.m`
+# Taken from `macaulaylab.net/Tests/testMacaulayMatrix.m`
 function test_MacaulayMatrix()
     @polyvar x y
     p = [1 + 2x + 3y + 4y^2, 5 + 6x]
@@ -59,7 +59,7 @@ function test_MacaulayMatrix()
     @test sparse(M) == M_expected
 end
 
-# Taken from `MacaulayMatrixlab.net/Database/Systems/dreesen1.m`
+# Taken from `macaulaylab.net/Database/Systems/dreesen1.m`
 function dreesen1()
     @polyvar x y
     return [-x^2 + 2x * y + y^2 + 5x - 3y - 4.0, x^2 + 2x * y + y^2 - 1]
