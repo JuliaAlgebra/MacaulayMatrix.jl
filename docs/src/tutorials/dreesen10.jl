@@ -14,7 +14,7 @@ using MacaulayMatrix
 using JuMP
 using MultivariateMoments
 
-# Consider the system given in [D13, Example 6.14] which corresponds to `Systems/dreesen10` of [MacaulayMatrixlab](http://www.MacaulayMatrixlab.net/):
+# Consider the system given in [D13, Example 6.14] which corresponds to `Systems/dreesen10` of [macaulaylab](http://www.macaulaylab.net/):
 
 @polyvar x[1:4]
 system = [
