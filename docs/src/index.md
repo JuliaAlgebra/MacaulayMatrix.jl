@@ -12,3 +12,7 @@ Documentation for [MacaulayMatrix](https://gitlab.esat.kuleuven.be/benoit.legat/
 ```@autodocs
 Modules = [MacaulayMatrix]
 ```
+
+```@autodocs
+Modules = [MacaulayMatrix.H2]
+```
