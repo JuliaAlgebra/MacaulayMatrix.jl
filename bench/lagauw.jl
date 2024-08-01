@@ -117,7 +117,7 @@ end
 s0 = system(Lagauw1(false))
 s1 = system(Lagauw1(true))
 
-using Macaulay
+using MacaulayMatrix
 using MultivariateMoments
 solve_system(s1, 4)
 

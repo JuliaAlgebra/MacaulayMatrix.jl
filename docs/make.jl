@@ -1,4 +1,4 @@
-using Macaulay
+using MacaulayMatrix
 using Documenter
 import Literate
 
@@ -16,19 +16,11 @@ end
 
 literate_directory()
 
-DocMeta.setdocmeta!(Macaulay, :DocTestSetup, :(using Macaulay); recursive=true)
+DocMeta.setdocmeta!(MacaulayMatrix, :DocTestSetup, :(using MacaulayMatrix); recursive=true)
 
 makedocs(;
-    modules=[Macaulay],
-    authors="Benoît Legat <benoit.legat@gmail.com> and contributors",
-    repo="https://gitlab.esat.kuleuven.be/benoit.legat/Macaulay.jl/blob/{commit}{path}#{line}",
-    sitename="Macaulay.jl",
-    format=Documenter.HTML(;
-        prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://gitlab.esat.kuleuven.be/benoit.legat/Macaulay.jl",
-        edit_link="main",
-        assets=String[],
-    ),
+    sitename="MacaulayMatrix",
+    format=Documenter.HTML(prettyurls=get(ENV, "CI", "false") == "true"),
     pages = [
         "Index" => "index.md",
         "Tutorials" => map(
@@ -39,9 +31,10 @@ makedocs(;
             ),
         ),
     ],
+    modules=[MacaulayMatrix],
 )
 
 deploydocs(
-    repo   = "gitlab.esat.kuleuven.be:benoit.legat/Macaulay.jl.git",
+    repo   = "github.com/JuliaAlgebra/MacaulayMatrix.jl.git",
     push_preview = true,
 )

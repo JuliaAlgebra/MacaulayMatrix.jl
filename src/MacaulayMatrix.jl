@@ -1,4 +1,4 @@
-module Macaulay
+module MacaulayMatrix
 
 import LinearAlgebra, SparseArrays
 import MultivariatePolynomials as MP
@@ -42,24 +42,15 @@ import DataFrames
 
 include("matrix.jl")
 
-mutable struct Iterator{
-    T,
-    P<:MP.AbstractPolynomialLike,
-    V<:AbstractVector{P},
-    B,
-    U,
-}
-    matrix::MacaulayMatrix{T,P,V,B}
+mutable struct Iterator{T,P<:MP.AbstractPolynomialLike,V<:AbstractVector{P},B,U}
+    matrix::LazyMatrix{T,P,V,B}
     # Type not concrete as different iteration might give different type if the user changes the option
     border::Union{Nothing,MM.BorderBasis}
     solutions::Union{Nothing,Vector{Vector{U}}}
     status::MOI.TerminationStatusCode
     stats::DataFrames.DataFrame
     solver::Solver
-    function Iterator(
-        matrix::MacaulayMatrix{T,P,V,B},
-        solver::Solver,
-    ) where {T,P,V,B}
+    function Iterator(matrix::LazyMatrix{T,P,V,B}, solver::Solver) where {T,P,V,B}
         U = SS.promote_for(T, Solver)
         return new{T,P,V,B,U}(
             matrix,
@@ -72,15 +63,12 @@ mutable struct Iterator{
     end
 end
 
-function Iterator(
-    polynomials::AbstractVector{<:MP.AbstractPolynomialLike},
-    solver::Solver,
-)
-    return Iterator(MacaulayMatrix(polynomials), solver)
+function Iterator(polynomials::AbstractVector{<:MP.AbstractPolynomialLike}, solver::Solver)
+    return Iterator(LazyMatrix(polynomials), solver)
 end
 
 function Base.show(io::IO, s::Iterator)
-    println(io, "Macaulay matrix solver. Last iteration considered:")
+    println(io, "MacaulayMatrix matrix solver. Last iteration considered:")
     show(io, s.matrix)
     if !isnothing(s.border)
         println(io, s.border)
@@ -128,8 +116,7 @@ function expand!(s::Iterator, sel::FirstStandardNonSaturated)
         # If we don't check for `is_forever_trivial` then we might
         # think we are adding monomials but we add none and hence
         # we won't make any progress
-        if !is_saturated(s.matrix, mono) &&
-            !is_forever_trivial(s.matrix, mono)
+        if !is_saturated(s.matrix, mono) && !is_forever_trivial(s.matrix, mono)
             push!(targets, mono)
         end
     end
@@ -137,11 +124,8 @@ function expand!(s::Iterator, sel::FirstStandardNonSaturated)
         @info("No candidate to saturate")
         return 0
     end
-    added = expand!(
-        s.matrix,
-        TargetColumns(targets);
-        sparse_columns = s.solver.sparse_columns,
-    )
+    added =
+        expand!(s.matrix, TargetColumns(targets); sparse_columns = s.solver.sparse_columns)
     if added > 0 && s.solver.print_level >= 1
         @info("Added $added rows to saturate columns `$targets`")
     end
@@ -190,7 +174,9 @@ function step!(s::Iterator, it)
     end
     null = LinearAlgebra.nullspace(s.matrix, _some_args(s.solver.rank_check)...)
     nullity = size(null.matrix, 2)
-    try_solving = !s.solver.wait_for_gap || (!isempty(s.stats.nullity) && nullity == s.stats.nullity[end])
+    try_solving =
+        !s.solver.wait_for_gap ||
+        (!isempty(s.stats.nullity) && nullity == s.stats.nullity[end])
     if s.solver.trim_to_border || try_solving
         rank_check = something(s.solver.rank_check, MM.LeadingRelativeRankTol(1e-8))
         s.border = MM.BorderBasis{s.solver.dependence}(null, rank_check)
@@ -206,7 +192,9 @@ function step!(s::Iterator, it)
                 s.status = MOI.INFEASIBLE
             else
                 if s.solver.print_level >= 1
-                    @info("Found $(length(s.solutions)) real solution$(isone(length(s.solutions)) ? "" : "s")")
+                    @info(
+                        "Found $(length(s.solutions)) real solution$(isone(length(s.solutions)) ? "" : "s")"
+                    )
                 end
                 s.status = MOI.OPTIMAL
             end
@@ -220,7 +208,8 @@ function step!(s::Iterator, it)
                 if isnothing(MM._index(null.basis, dep.basis.monomials[i]))
                     return false
                 end
-                return MM.is_standard(dep.dependence[i]) || any(MP.variables(dep.basis)) do v
+                return MM.is_standard(dep.dependence[i]) ||
+                       any(MP.variables(dep.basis)) do v
                     mono = dep.basis.monomials[i]
                     if MP.divides(v, mono)
                         q = MP.div_multiple(mono, v)
@@ -231,10 +220,12 @@ function step!(s::Iterator, it)
                     end
                     return false
                 end
-            end
+            end,
         )
         trimmed_null = null[standard_and_border]
-        s.matrix = MacaulayMatrix(LinearAlgebra.nullspace(trimmed_null.matrix')' * standard_and_border.monomials)
+        s.matrix = LazyMatrix(
+            LinearAlgebra.nullspace(trimmed_null.matrix')' * standard_and_border.monomials,
+        )
         # To at least add the unshifted polynomials otherwise the next iteration
         # will do nothing
         expand!(s, it)
@@ -278,4 +269,4 @@ include("cvp.jl")
 include("H2/H2.jl")
 export H2
 
-end # module Macaulay
+end # module MacaulayMatrix

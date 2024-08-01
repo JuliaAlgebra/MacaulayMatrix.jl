@@ -11,7 +11,7 @@ function realization_hankel(H::LinearAlgebra.Symmetric, monos)
     return realization_hankel(MM.MomentMatrix(H, monos))
 end
 
-function MM.moment_matrix(null::MM.MacaulayNullspace, solver, d; print_level=1)
+function MM.moment_matrix(null::MM.MacaulayNullspace, solver, d; print_level = 1)
     # TODO Newton polytope
     vars = MP.variables(null.basis.monomials)
     monos = MP.monomials(vars, 0:2d)
@@ -20,14 +20,14 @@ function MM.moment_matrix(null::MM.MacaulayNullspace, solver, d; print_level=1)
     # Number of roots at infinity that were left out by not adding these as columns
     null = null[[mono for mono in monos if mono in null.basis.monomials]]
     num_inf = length(monos) - size(null.matrix, 1)
-    JuMP.@variable(model, b[1:(r + num_inf)])
+    JuMP.@variable(model, b[1:(r+num_inf)])
     JuMP.@constraint(model, sum(b) == 1)
     inf_idx = 0
     Zb = map(monos) do mono
         idx = MM._monomial_index(null.basis.monomials, mono)
         if isnothing(idx)
             inf_idx += 1
-            return convert(JuMP.AffExpr, b[r + inf_idx])
+            return convert(JuMP.AffExpr, b[r+inf_idx])
         else
             return null.matrix[idx, :]' * b[1:r]
         end
@@ -35,13 +35,15 @@ function MM.moment_matrix(null::MM.MacaulayNullspace, solver, d; print_level=1)
     @assert inf_idx == num_inf
     gram_monos = MP.monomials(vars, 0:d)
     H = LinearAlgebra.Symmetric([
-        Zb[findfirst(isequal(gram_monos[i] * gram_monos[j]), monos)]
-        for i in eachindex(gram_monos), j in eachindex(gram_monos)
+        Zb[findfirst(isequal(gram_monos[i] * gram_monos[j]), monos)] for
+        i in eachindex(gram_monos), j in eachindex(gram_monos)
     ])
     JuMP.@constraint(model, H in JuMP.PSDCone())
     JuMP.optimize!(model)
     if print_level >= 1
-        @info("Terminated with $(JuMP.termination_status(model)) ($(JuMP.raw_status(model))) in $(JuMP.solve_time(model)) seconds.")
+        @info(
+            "Terminated with $(JuMP.termination_status(model)) ($(JuMP.raw_status(model))) in $(JuMP.solve_time(model)) seconds."
+        )
     end
     if JuMP.termination_status(model) == JuMP.MOI.INFEASIBLE
         return
@@ -54,7 +56,11 @@ function MM.moment_matrix(null::MM.MacaulayNullspace, solver, d; print_level=1)
     return MM.MomentMatrix(H, gram_monos)
 end
 
-function MM.moment_matrix(polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}}, solver, maxdegree) where {T}
+function MM.moment_matrix(
+    polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}},
+    solver,
+    maxdegree,
+) where {T}
     Z = LinearAlgebra.nullspace(macaulay(polynomials, maxdegree))
     return MM.moment_matrix(Z, solver, div(maxdegree, 2))
 end

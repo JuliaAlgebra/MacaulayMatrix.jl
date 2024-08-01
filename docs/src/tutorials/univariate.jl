@@ -4,7 +4,7 @@ using LinearAlgebra
 using DynamicPolynomials
 using MultivariateMoments
 using JuMP
-using Macaulay
+using MacaulayMatrix
 
 # Consider the following example:
 
@@ -28,7 +28,7 @@ solver = SCS.Optimizer
 psd_hankel([q], solver, 4)
 
 # What happened there ?
-# First, we computed the Macaulay matrix nullspace
+# First, we computed the MacaulayMatrix matrix nullspace
 
 
 Z = nullspace(macaulay([q], 4))

@@ -1,14 +1,18 @@
 ```@meta
-CurrentModule = Macaulay
+CurrentModule = MacaulayMatrix
 ```
 
-# Macaulay
+# MacaulayMatrix
 
-Documentation for [Macaulay](https://gitlab.esat.kuleuven.be/benoit.legat/Macaulay.jl/).
+Documentation for [MacaulayMatrix](https://gitlab.esat.kuleuven.be/benoit.legat/MacaulayMatrix.jl/).
 
 ```@index
 ```
 
 ```@autodocs
-Modules = [Macaulay]
+Modules = [MacaulayMatrix]
+```
+
+```@autodocs
+Modules = [MacaulayMatrix.H2]
 ```
