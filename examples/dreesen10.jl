@@ -30,13 +30,13 @@ solve_system(system, column_maxdegree = 8)
 # With moment matrix of degree 6:
 
 # FIXME failing on ci but working locally, try again with better condition with cheby basis #src
-import SCS
-solver = SCS.Optimizer
+include("solvers.jl")
+solver = scs_optimizer(; eps = 1e-6, max_iters = 50_000)
 M = moment_matrix(system, solver, 6)
 
 # We don't find anything:
 
-atomic_measure(M, 1e-4, ShiftNullspace())
+atomic_measure(M, 1e-5, ShiftNullspace())
 
 # With moment matrix of degree 7:
 
@@ -56,7 +56,7 @@ atomic_measure(M, 1e-4, ShiftNullspace())
 # The third one contains the solutions `(0.5, 0.5, 0.8165, -0.8165)`
 # and `(0.5, 0.5, -0.8165, 0.8165)`:
 
-sols = atomic_measure(M, 1e-4, ShiftNullspace())
+sols = atomic_measure(M, 1e-6, ShiftNullspace())
 check(sols, x) = any(atom -> isapprox(atom.center, x, rtol=1e-2), sols.atoms)
 @test check(sols, [0.5, 0.5, -0.81, 0.81])
 @test check(sols, [0.5, 0.5, 0.81, -0.81])
