@@ -3,13 +3,13 @@ import Manifolds
 import Manopt
 export eliminate_indices
 
-#"""
-#    function Ellipsoid{T,M<:AbstractMatrix}
-#        M::M
-#    end
-#
-#Represent the set `x'A'Ax = 1`.
-#"""
+"""
+    function Ellipsoid{T,M<:AbstractMatrix}
+        M::M
+    end
+
+Represent the set `x'A'Ax = 1`.
+"""
 struct Ellipsoid{T,M<:AbstractMatrix{T}} <: ManifoldsBase.AbstractManifold{ManifoldsBase.ℝ}
     A::M
 end
