@@ -32,6 +32,9 @@ makedocs(;
         ),
     ],
     modules=[MacaulayMatrix],
+    # Disable remote links because Documenter seems to have weird issues with it
+    # See https://github.com/JuliaAlgebra/MacaulayMatrix.jl/actions/runs/10199310419/job/28216095801
+    remotes = nothing,
 )
 
 deploydocs(
