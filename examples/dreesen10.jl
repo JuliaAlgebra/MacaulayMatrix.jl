@@ -32,7 +32,8 @@ solve_system(system, column_maxdegree = 8)
 # FIXME failing on ci but working locally, try again with better condition with cheby basis #src
 include("solvers.jl")
 solver = scs_optimizer(; eps = 1e-6, max_iters = 50_000)
-M = moment_matrix(system, solver, 6)
+ν6 = moment_matrix(system, solver, 6)
+solutions(ν6)
 
 # We don't find anything:
 
@@ -40,7 +41,11 @@ atomic_measure(M, 1e-5, ShiftNullspace())
 
 # With moment matrix of degree 7:
 
-M = moment_matrix(system, solver, 7)
+ν7 = moment_matrix(system, solver, 7)
+solutions(ν7)
+
+ν8 = moment_matrix(system, solver, 8)
+solutions(ν8)
 
 # We get different solutions for different runs because of the random combinations of multiplication matrices:
 # so let's fix the seed to make it reproducible:
@@ -60,3 +65,9 @@ sols = atomic_measure(M, 1e-6, ShiftNullspace())
 check(sols, x) = any(atom -> isapprox(atom.center, x, rtol=1e-2), sols.atoms)
 @test check(sols, [0.5, 0.5, -0.81, 0.81])
 @test check(sols, [0.5, 0.5, 0.81, -0.81])
+
+display(solutions(M))
+c = sols[1]
+
+M = moment_matrix(system, solver, 8)
+display(solutions(M))
