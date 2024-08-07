@@ -22,6 +22,11 @@ system = [
     x[1] * x[3]^3 + x[2] * x[4]^3,
 ]
 
+expected(T=Float64) = [
+    T[1//2, 1//2, √T(2//3), -√T(2//3)],
+    T[1//2, 1//2, -√T(2//3), √T(2//3)],
+]
+
 # With the classical MacaulayMatrix approach, the nullity increases by 2 at every degree
 # because of the positive dimensional solution set at infinity.
 
@@ -31,9 +36,31 @@ solve_system(system, column_maxdegree = 8)
 
 # FIXME failing on ci but working locally, try again with better condition with cheby basis #src
 include("solvers.jl")
-solver = scs_optimizer(; eps = 1e-6, max_iters = 50_000)
-solver = clarabel_optimizer(T = BigFloat)
-solver = hypatia_optimizer()
+scs = scs_optimizer(; eps = 1e-6, max_iters = 50_000)
+hypatia = hypatia_optimizer()
+big_clarabel = clarabel_optimizer(T = BigFloat)
+
+ν4 = moment_matrix(system, big_clarabel, 4, T = BigFloat)
+MacaulayMatrix.errors(ν4, x, expected(BigFloat))
+r4 = MacaulayMatrix.cheat_rank(ν4, x, expected(BigFloat), LeadingRelativeRankTol(1e-6))
+compute_support!(ν4, FixedRank(r4), ImageSpaceSolver(SVDLDLT(), Echelon()))
+support_error(ν4, x, expected(BigFloat))
+M4 = nullspace(ν4)
+
+ν5 = moment_matrix(system, big_clarabel, 5, T = BigFloat)
+MacaulayMatrix.errors(ν5, x, expected(BigFloat))
+r5 = MacaulayMatrix.cheat_rank(ν5, x, expected(BigFloat), LeadingRelativeRankTol(1e-6))
+compute_support!(ν5, FixedRank(r5), ImageSpaceSolver(SVDLDLT(), Echelon()))
+ν5.support
+support_error(ν5, x, expected(BigFloat))
+M5 = nullspace(ν5)
+M5 * ν5.basis.monomials
+solve_system(M5 * ν5.basis.monomials)
+solve_system(Float64.(M5) * ν5.basis.monomials)
+
+atomic_measure(ν5, FixedRank(r5))
+atomic_measure(ν5, FixedRank(r5), ShiftNullspace())
+
 ν6 = moment_matrix(system, solver, 6, T = BigFloat)
 solutions(ν6)
 compute_support!(ν6, FixedRank(25))

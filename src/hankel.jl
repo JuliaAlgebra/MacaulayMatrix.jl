@@ -1,4 +1,4 @@
-export solutions
+export solutions, errors, support_error, cheat_rank
 
 function realization_hankel(M::MM.MomentMatrix)
     η = MM.atomic_measure(M, 1e-4)
@@ -13,7 +13,7 @@ function realization_hankel(H::LinearAlgebra.Symmetric, monos)
     return realization_hankel(MM.MomentMatrix(H, monos))
 end
 
-function MM.moment_matrix(null::MM.MacaulayNullspace, solver, d; print_level = 1, T = Float64)
+function MM.moment_matrix(null::MM.MacaulayNullspace, solver, d = div(maxdegree(null), 2); print_level = 1, T = Float64)
     # TODO Newton polytope
     vars = MP.variables(null.basis.monomials)
     monos = MP.monomials(vars, 0:2d)
@@ -87,4 +87,43 @@ function solutions(M::MM.MomentMatrix, s = MM.ShiftNullspace())
         end
     end
     return sols
+end
+
+function sol_diracs(ν, vars, sols)
+    return [MM.dirac(ν.basis.monomials, vars => sol) for sol in sols]
+end
+
+function errors(ν::MM.MomentMatrix, vars, sols)
+    diracs = sol_diracs(ν, vars, sols)
+    S = LinearAlgebra.svd(MM.value_matrix(ν))
+    errors = fill(NaN, size(S.U, 2))
+    for i in size(S.U, 2):-1:1
+        u = S.U[:, i]
+        errors[i] = maximum(diracs, init = i == size(S.U, 2) ? 0 : errors[i + 1]) do dirac
+            abs(LinearAlgebra.dot(dirac.a, u))
+        end
+    end
+    return errors
+end
+
+function support_error(ν::MM.MomentMatrix, vars, sols)
+    return maximum(SS.equalities(ν.support), init = 0) do eq
+        return maximum(sols) do sol
+            abs(eq(vars => sol))
+        end
+    end
+end
+
+function cheat_rank(ν::MM.MomentMatrix, vars, sols, rank_check)
+    return MM.rank_from_singular_values(errors(ν, vars, sols), rank_check)
+end
+
+function LinearAlgebra.nullspace(ν::MM.MomentMatrix{T}, tol=1e-8) where {T}
+    M = Matrix{T}(undef, SS.nequalities(ν.support), length(ν.basis))
+    for (i, eq) in enumerate(SS.equalities(ν.support))
+        M[i, :] = MP.coefficients(eq, ν.basis.monomials)
+    end
+    S = SparseArrays.sparse(M)
+    SparseArrays.droptol!(S, tol)
+    return S
 end
