@@ -29,25 +29,33 @@ expected(T=Float64) = [
 
 # With the classical MacaulayMatrix approach, the nullity increases by 2 at every degree
 # because of the positive dimensional solution set at infinity.
+# The solution is obtained at degree `6`.
 
 solve_system(system, column_maxdegree = 8)
 
-# With moment matrix of degree 6:
+# With moment matrix of degree 4:
 
-# FIXME failing on ci but working locally, try again with better condition with cheby basis #src
 include("solvers.jl")
-scs = scs_optimizer(; eps = 1e-6, max_iters = 50_000)
-hypatia = hypatia_optimizer()
 big_clarabel = clarabel_optimizer(T = BigFloat)
 
 ν4 = moment_matrix(system, big_clarabel, 4, T = BigFloat)
-MacaulayMatrix.errors(ν4, x, expected(BigFloat))
+
+# The rank of the moment matrix is `9`:
+
 r4 = MacaulayMatrix.cheat_rank(ν4, x, expected(BigFloat), LeadingRelativeRankTol(1e-6))
+
+# The nullspace is then of degree 6 and we can see below that they are
+# 6 valid equations for our solutions.
+
+MacaulayMatrix.errors(ν4, x, expected(BigFloat))
 compute_support!(ν4, FixedRank(r4), ImageSpaceSolver(SVDLDLT(), Echelon()))
 support_error(ν4, x, expected(BigFloat))
 M4 = nullspace(ν4)
+M4 = nullspace(ν4, FixedRank(r4))
+solve_system([system; Float64.(M4) * ν4.basis.monomials])
 
 ν5 = moment_matrix(system, big_clarabel, 5, T = BigFloat)
+cheat_system(ν5, x, expected(BigFloat), LeadingRelativeRankTol(1e-6))
 MacaulayMatrix.errors(ν5, x, expected(BigFloat))
 r5 = MacaulayMatrix.cheat_rank(ν5, x, expected(BigFloat), LeadingRelativeRankTol(1e-6))
 compute_support!(ν5, FixedRank(r5), ImageSpaceSolver(SVDLDLT(), Echelon()))

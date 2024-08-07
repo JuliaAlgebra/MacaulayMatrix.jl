@@ -1,4 +1,4 @@
-export solutions, errors, support_error, cheat_rank
+export solutions, errors, support_error, cheat_rank, cheat_nullspace, cheat_system
 
 function realization_hankel(M::MM.MomentMatrix)
     η = MM.atomic_measure(M, 1e-4)
@@ -13,7 +13,7 @@ function realization_hankel(H::LinearAlgebra.Symmetric, monos)
     return realization_hankel(MM.MomentMatrix(H, monos))
 end
 
-function MM.moment_matrix(null::MM.MacaulayNullspace, solver, d = div(maxdegree(null), 2); print_level = 1, T = Float64)
+function MM.moment_matrix(null::MM.MacaulayNullspace, solver, d = div(maxdegree(null.basis), 2); print_level = 1, T = Float64)
     # TODO Newton polytope
     vars = MP.variables(null.basis.monomials)
     monos = MP.monomials(vars, 0:2d)
@@ -65,7 +65,7 @@ function MM.moment_matrix(
     kws...,
 ) where {T}
     Z = LinearAlgebra.nullspace(macaulay(polynomials, maxdegree))
-    return MM.moment_matrix(Z, solver, div(maxdegree, 2); kws...)
+    return MM.moment_matrix(Z, solver; kws...)
 end
 
 function psd_hankel(args...)
@@ -116,6 +116,33 @@ end
 
 function cheat_rank(ν::MM.MomentMatrix, vars, sols, rank_check)
     return MM.rank_from_singular_values(errors(ν, vars, sols), rank_check)
+end
+
+"""
+    cheat_nullspace(ν::MM.MomentMatrix, args...)
+
+Return the nullspace of `ν` as matrix for each each row
+is an element of the nullspace.
+"""
+function cheat_nullspace(ν::MM.MomentMatrix, args...)
+    r = cheat_rank(ν, args...)
+    return LinearAlgebra.nullspace(ν, MM.FixedRank(r))
+end
+
+"""
+    cheat_system(ν::MM.MomentMatrix, args...)
+
+Return the nullspace of `ν` as an vector of polynomials.
+"""
+function cheat_system(ν::MM.MomentMatrix, args...)
+    M = cheat_nullspace(ν, args...)
+    return M * ν.basis.monomials
+end
+
+function LinearAlgebra.nullspace(ν::MM.MomentMatrix, rank_check::MM.RankCheck)
+    S = LinearAlgebra.svd(MM.value_matrix(ν))
+    r = MM.rank_from_singular_values(S.S, rank_check)
+    return S.U[:, (r+1):end]'
 end
 
 function LinearAlgebra.nullspace(ν::MM.MomentMatrix{T}, tol=1e-8) where {T}
