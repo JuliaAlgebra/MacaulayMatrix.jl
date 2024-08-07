@@ -1,3 +1,5 @@
+export solutions
+
 function realization_hankel(M::MM.MomentMatrix)
     η = MM.atomic_measure(M, 1e-4)
     if isnothing(η)
@@ -71,4 +73,17 @@ function psd_hankel(args...)
         return nothing
     end
     return realization_hankel(H)
+end
+
+function solutions(M::MM.MomentMatrix, s = MM.ShiftNullspace())
+    sols = []
+    for r in 1:length(M.basis)
+        η = MM.atomic_measure(M, MM.FixedRank(r), s)
+        if !isnothing(η)
+            for atom in η.atoms
+                push!(sols, r => atom)
+            end
+        end
+    end
+    return sols
 end
