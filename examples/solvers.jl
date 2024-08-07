@@ -1,4 +1,23 @@
+using JuMP
 using Dualization
+
+import Hypatia
+function hypatia_optimizer(;
+    T = Float64,
+)
+    return JuMP.optimizer_with_attributes(
+        Hypatia.Optimizer{T},
+    )
+end
+
+import Clarabel
+function clarabel_optimizer(;
+    T = Float64,
+)
+    return JuMP.optimizer_with_attributes(
+        Clarabel.Optimizer{T},
+    )
+end
 
 import SCS
 function scs_optimizer(;

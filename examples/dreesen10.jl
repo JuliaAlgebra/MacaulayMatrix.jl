@@ -32,8 +32,16 @@ solve_system(system, column_maxdegree = 8)
 # FIXME failing on ci but working locally, try again with better condition with cheby basis #src
 include("solvers.jl")
 solver = scs_optimizer(; eps = 1e-6, max_iters = 50_000)
-ν6 = moment_matrix(system, solver, 6)
+solver = clarabel_optimizer(T = BigFloat)
+solver = hypatia_optimizer()
+ν6 = moment_matrix(system, solver, 6, T = BigFloat)
 solutions(ν6)
+compute_support!(ν6, FixedRank(25))
+ν6.support
+using SemialgebraicSets
+for eq in equalities(ν6.support)
+    @show eq(x => [0.5, 0.5, -0.8165, 0.8165])
+end
 
 # We don't find anything:
 

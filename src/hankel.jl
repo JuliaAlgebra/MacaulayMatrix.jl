@@ -13,11 +13,11 @@ function realization_hankel(H::LinearAlgebra.Symmetric, monos)
     return realization_hankel(MM.MomentMatrix(H, monos))
 end
 
-function MM.moment_matrix(null::MM.MacaulayNullspace, solver, d; print_level = 1)
+function MM.moment_matrix(null::MM.MacaulayNullspace, solver, d; print_level = 1, T = Float64)
     # TODO Newton polytope
     vars = MP.variables(null.basis.monomials)
     monos = MP.monomials(vars, 0:2d)
-    model = JuMP.Model(solver)
+    model = JuMP.GenericModel{T}(solver)
     r = size(null.matrix, 2)
     # Number of roots at infinity that were left out by not adding these as columns
     null = null[[mono for mono in monos if mono in null.basis.monomials]]
@@ -29,7 +29,7 @@ function MM.moment_matrix(null::MM.MacaulayNullspace, solver, d; print_level = 1
         idx = MM._monomial_index(null.basis.monomials, mono)
         if isnothing(idx)
             inf_idx += 1
-            return convert(JuMP.AffExpr, b[r+inf_idx])
+            return convert(JuMP.GenericAffExpr{T,JuMP.GenericVariableRef{T}}, b[r+inf_idx])
         else
             return null.matrix[idx, :]' * b[1:r]
         end
@@ -61,10 +61,11 @@ end
 function MM.moment_matrix(
     polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}},
     solver,
-    maxdegree,
+    maxdegree;
+    kws...,
 ) where {T}
     Z = LinearAlgebra.nullspace(macaulay(polynomials, maxdegree))
-    return MM.moment_matrix(Z, solver, div(maxdegree, 2))
+    return MM.moment_matrix(Z, solver, div(maxdegree, 2); kws...)
 end
 
 function psd_hankel(args...)
