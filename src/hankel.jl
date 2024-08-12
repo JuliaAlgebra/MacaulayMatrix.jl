@@ -155,7 +155,12 @@ function LinearAlgebra.nullspace(ν::MM.MomentMatrix, rank_check::MM.RankCheck)
     return LazyMatrix(S.U[:, (r+1):end]' * ν.basis.monomials)
 end
 
-function LinearAlgebra.nullspace(ν::MM.MomentMatrix, rank_check::MM.RankCheck, solver::MM.ShiftNullspace; kws...)
+function LinearAlgebra.nullspace(
+    ν::MM.MomentMatrix,
+    rank_check::MM.RankCheck,
+    solver::MM.ShiftNullspace;
+    kws...,
+)
     null = MM.MacaulayNullspace(ν, rank_check)
     border = MM.BorderBasis{MM.StaircaseDependence}(null, solver.check)
     std = MM.standard_basis(border.dependence; trivial = false)
@@ -164,7 +169,12 @@ function LinearAlgebra.nullspace(ν::MM.MomentMatrix, rank_check::MM.RankCheck, 
     return LinearAlgebra.nullspace(ν; kws...)
 end
 
-function LinearAlgebra.nullspace(ν::MM.MomentMatrix, rank_check::MM.RankCheck, solver::MM.Echelon; kws...)
+function LinearAlgebra.nullspace(
+    ν::MM.MomentMatrix,
+    rank_check::MM.RankCheck,
+    solver::MM.Echelon;
+    kws...,
+)
     MM.compute_support!(ν, rank_check, solver)
     return LinearAlgebra.nullspace(ν; kws...)
 end

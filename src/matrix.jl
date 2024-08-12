@@ -316,7 +316,7 @@ end
 default_rank_check(::Nothing) = MM.LeadingRelativeRankTol(1e-8)
 default_rank_check(r::MM.RankCheck) = r
 
-function LinearAlgebra.rank(M::LazyMatrix, rank_check=nothing)
+function LinearAlgebra.rank(M::LazyMatrix, rank_check = nothing)
     S = LinearAlgebra.svd(Matrix(SparseArrays.sparse(M)))
     return MM.rank_from_singular_values(S.S, default_rank_check(rank_check))
 end
@@ -334,13 +334,13 @@ function is_new(
 end
 
 function nonredundant(
-    M1::LazyMatrix, polys, args...;
+    M1::LazyMatrix,
+    polys,
+    args...;
     d = max(MP.maxdegree(M1.polynomials), MP.maxdegree(polys)),
 )
     rank_ref = LinearAlgebra.rank(macaulay(polys, d), args...)
-    return LazyMatrix(
-        filter(M1.polynomials) do p
-            is_new(p, polys, args...; d, rank_ref)
-        end,
-    )
+    return LazyMatrix(filter(M1.polynomials) do p
+        return is_new(p, polys, args...; d, rank_ref)
+    end)
 end
