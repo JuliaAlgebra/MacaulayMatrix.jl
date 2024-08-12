@@ -36,7 +36,7 @@ solve_system(system, column_maxdegree = 8)
 # With moment matrix of degree 4:
 
 include("solvers.jl")
-big_clarabel = clarabel_optimizer(T = BigFloat):w
+big_clarabel = clarabel_optimizer(T = BigFloat)
 
 ν4 = moment_matrix(system, big_clarabel, 4, T = BigFloat)
 
