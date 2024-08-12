@@ -48,69 +48,47 @@ r4 = MacaulayMatrix.cheat_rank(ν4, x, expected(BigFloat), LeadingRelativeRankTo
 # 6 valid equations for our solutions.
 
 MacaulayMatrix.errors(ν4, x, expected(BigFloat))
-compute_support!(ν4, FixedRank(r4), ImageSpaceSolver(SVDLDLT(), Echelon()))
-support_error(ν4, x, expected(BigFloat))
-M4 = nullspace(ν4)
+
+# Using the nullspace from the SVD of the moment matrix, we get
+# these 6 equations:
+
 M4 = nullspace(ν4, FixedRank(r4))
-solve_system([system; Float64.(M4) * ν4.basis.monomials])
+
+# When we compare to the initial system, we see that these
+# are simply redundant equations:
+
+Δ4 = nonredundant(M4, system)
+
+# We can also use the image space from the SVD. This is a
+# Macaulay nullspace. We can therefore find there the dependent
+# and independent monomials and put this nullspace in standard form.
+# The nullspace of this standard form gives a Macaulay matrix
+# that's also in standard form hence is a bit more readable.
+
+M4 = nullspace(ν4, FixedRank(r4), ShiftNullspace())
+
+# We lose one equation here, probably because we ignore dependent
+# monomials that are multiple of another dependent one.
+# Taking the difference, unsurprisingly gives us the same result,
+# no new equation.
+
+Δ4 = nonredundant(M4, system)
+
+# With moment matrix of degree 4 from a Macaulay nullspace of degree 5,
+# we get:
 
 ν5 = moment_matrix(system, big_clarabel, 5, T = BigFloat)
-cheat_system(ν5, x, expected(BigFloat), LeadingRelativeRankTol(1e-6))
-MacaulayMatrix.errors(ν5, x, expected(BigFloat))
+
+# The rank of the moment matrix is now `5`:
+
 r5 = MacaulayMatrix.cheat_rank(ν5, x, expected(BigFloat), LeadingRelativeRankTol(1e-6))
-compute_support!(ν5, FixedRank(r5), ImageSpaceSolver(SVDLDLT(), Echelon()))
-ν5.support
-support_error(ν5, x, expected(BigFloat))
-M5 = nullspace(ν5)
-M5 * ν5.basis.monomials
-solve_system(M5 * ν5.basis.monomials)
-solve_system(Float64.(M5) * ν5.basis.monomials)
 
-atomic_measure(ν5, FixedRank(r5))
-atomic_measure(ν5, FixedRank(r5), ShiftNullspace())
+# Indeed, we see that the SVD gives 10 valid equations:
 
-ν6 = moment_matrix(system, solver, 6, T = BigFloat)
-solutions(ν6)
-compute_support!(ν6, FixedRank(25))
-ν6.support
-using SemialgebraicSets
-for eq in equalities(ν6.support)
-    @show eq(x => [0.5, 0.5, -0.8165, 0.8165])
-end
+MacaulayMatrix.errors(ν5, x, expected(BigFloat))
 
-# We don't find anything:
+# Among these, we have 6 new equations:
 
-atomic_measure(M, 1e-5, ShiftNullspace())
+Δ5 = nonredundant(nullspace(ν5, FixedRank(r5), ShiftNullspace()), system)
 
-# With moment matrix of degree 7:
-
-ν7 = moment_matrix(system, solver, 7)
-solutions(ν7)
-
-ν8 = moment_matrix(system, solver, 8)
-solutions(ν8)
-
-# We get different solutions for different runs because of the random combinations of multiplication matrices:
-# so let's fix the seed to make it reproducible:
-
-using Random
-Random.seed!(0)
-atomic_measure(M, 1e-4, ShiftNullspace())
-
-# The second time, no luck:
-
-atomic_measure(M, 1e-4, ShiftNullspace())
-
-# The third one contains the solutions `(0.5, 0.5, 0.8165, -0.8165)`
-# and `(0.5, 0.5, -0.8165, 0.8165)`:
-
-sols = atomic_measure(M, 1e-6, ShiftNullspace())
-check(sols, x) = any(atom -> isapprox(atom.center, x, rtol=1e-2), sols.atoms)
-@test check(sols, [0.5, 0.5, -0.81, 0.81])
-@test check(sols, [0.5, 0.5, 0.81, -0.81])
-
-display(solutions(M))
-c = sols[1]
-
-M = moment_matrix(system, solver, 8)
-display(solutions(M))
+# Are these equations also valid for complex solutions ?
