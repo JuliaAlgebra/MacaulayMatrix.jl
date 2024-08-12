@@ -56,14 +56,17 @@ function test_cvp(T = Float64)
         if !ellipsoid
             push!(
                 rank_checks,
-                MacaulayMatrix.MM.LeadingRelativeRankTol(Base.rtoldefault(Float64)),
+                MacaulayMatrix.MM.LeadingRelativeRankTol(
+                    Base.rtoldefault(Float64),
+                ),
             )
         end
         @testset "$(string(solver)[1:8])" for solver in solvers
             @testset "$(string(rank_check)[1:4])" for rank_check in rank_checks
                 @testset "$α" for α in [zero(T), one(T), T(2)]
                     p = x^2 - 2x + α
-                    c, ε = MacaulayMatrix.cvp(p, 2; ellipsoid, solver, rank_check)
+                    c, ε =
+                        MacaulayMatrix.cvp(p, 2; ellipsoid, solver, rank_check)
                     @test MP.maxdegree(c) == 1
                     c /= MP.leading_coefficient(c)
                     vars = MP.effective_variables(c)

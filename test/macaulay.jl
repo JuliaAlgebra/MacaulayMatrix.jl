@@ -28,6 +28,7 @@ function _test_monomial_ideal_generators(generators)
         end
     end
     __test_monomial_ideal_generators(standard, generators)
+    return
 end
 
 function test_monomial_ideal_generators()
@@ -35,7 +36,14 @@ function test_monomial_ideal_generators()
     _test_monomial_ideal_generators([x^0])
     _test_monomial_ideal_generators([x^3])
     _test_monomial_ideal_generators([x^3, x^2 * y^2, y^3])
-    _test_monomial_ideal_generators([x^7, x^3 * z, x^2 * z * y^2, y^8, y^3 * z^2, z^7])
+    return _test_monomial_ideal_generators([
+        x^7,
+        x^3 * z,
+        x^2 * z * y^2,
+        y^8,
+        y^3 * z^2,
+        z^7,
+    ])
 end
 
 # Taken from `macaulaylab.net/Tests/testMacaulayMatrix.m`
@@ -75,17 +83,24 @@ end
 function test_dreesen1()
     ps = dreesen1()
     expected = [[4, -5], [3, -2], [0, -1], [1, 0]]
-    @testset "d=$d" for d = 3:5
-        @testset "solve_system $sparse_columns" for sparse_columns in [false, true]
-            @testset "trim_to_border $trim_to_border" for trim_to_border in [false, true]
-                solver = Solver(; trim_to_border, column_maxdegree = d, sparse_columns)
+    @testset "d=$d" for d in 3:5
+        @testset "solve_system $sparse_columns" for sparse_columns in
+                                                    [false, true]
+            @testset "trim_to_border $trim_to_border" for trim_to_border in
+                                                          [false, true]
+                solver = Solver(;
+                    trim_to_border,
+                    column_maxdegree = d,
+                    sparse_columns,
+                )
                 s = MacaulayMatrix.SS.algebraic_set(ps, solver)
                 sols = collect(s)
                 _test_sols(sols, expected)
             end
         end
         @testset "psd_hankel" begin
-            solver = optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() => true)
+            solver =
+                optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() => true)
             sols = psd_hankel(ps, solver, d)
             if d == 3
                 @test sols === nothing
@@ -101,15 +116,16 @@ function test_univariate()
     p = 3x^4 + 8x^3 - 6x^2 + 24x + 1
     q = differentiate(p, x)
     exp = -2.658967
-    @test solve_system([q], column_maxdegree = 3, wait_for_gap = true) === nothing
+    @test solve_system([q], column_maxdegree = 3, wait_for_gap = true) ===
+          nothing
     _test_sols(solve_system([q], column_maxdegree = 3), [[exp]])
-    for d = 4:4
+    for d in 4:4
         sols = solve_system([q], column_maxdegree = d)
         _test_sols(sols, [[exp]])
     end
     solver = optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() => true)
     @test psd_hankel([q], solver, 3) === nothing
-    @testset "d=$d" for d = 4:8
+    @testset "d=$d" for d in 4:8
         sols = psd_hankel([q], solver, d)
         if isodd(d)
             @test sols === nothing # FIXME

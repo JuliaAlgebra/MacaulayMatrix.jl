@@ -1,4 +1,5 @@
-export solutions, errors, support_error, cheat_rank, cheat_nullspace, cheat_system
+export solutions,
+    errors, support_error, cheat_rank, cheat_nullspace, cheat_system
 
 function realization_hankel(M::MM.MomentMatrix)
     η = MM.atomic_measure(M, 1e-4)
@@ -13,7 +14,13 @@ function realization_hankel(H::LinearAlgebra.Symmetric, monos)
     return realization_hankel(MM.MomentMatrix(H, monos))
 end
 
-function MM.moment_matrix(null::MM.MacaulayNullspace, solver, d = div(maxdegree(null.basis), 2); print_level = 1, T = Float64)
+function MM.moment_matrix(
+    null::MM.MacaulayNullspace,
+    solver,
+    d = div(MP.maxdegree(null.basis), 2);
+    print_level = 1,
+    T = Float64,
+)
     # TODO Newton polytope
     vars = MP.variables(null.basis.monomials)
     monos = MP.monomials(vars, 0:2d)
@@ -29,7 +36,10 @@ function MM.moment_matrix(null::MM.MacaulayNullspace, solver, d = div(maxdegree(
         idx = MM._monomial_index(null.basis.monomials, mono)
         if isnothing(idx)
             inf_idx += 1
-            return convert(JuMP.GenericAffExpr{T,JuMP.GenericVariableRef{T}}, b[r+inf_idx])
+            return convert(
+                JuMP.GenericAffExpr{T,JuMP.GenericVariableRef{T}},
+                b[r+inf_idx],
+            )
         else
             return null.matrix[idx, :]' * b[1:r]
         end
@@ -99,9 +109,10 @@ function errors(ν::MM.MomentMatrix, vars, sols)
     errors = fill(NaN, size(S.U, 2))
     for i in size(S.U, 2):-1:1
         u = S.U[:, i]
-        errors[i] = maximum(diracs, init = i == size(S.U, 2) ? 0 : errors[i + 1]) do dirac
-            abs(LinearAlgebra.dot(dirac.a, u))
-        end
+        errors[i] =
+            maximum(diracs, init = i == size(S.U, 2) ? 0 : errors[i+1]) do dirac
+                return abs(LinearAlgebra.dot(dirac.a, u))
+            end
     end
     return errors
 end
@@ -109,7 +120,7 @@ end
 function support_error(ν::MM.MomentMatrix, vars, sols)
     return maximum(SS.equalities(ν.support), init = 0) do eq
         return maximum(sols) do sol
-            abs(eq(vars => sol))
+            return abs(eq(vars => sol))
         end
     end
 end
@@ -145,7 +156,7 @@ function LinearAlgebra.nullspace(ν::MM.MomentMatrix, rank_check::MM.RankCheck)
     return S.U[:, (r+1):end]'
 end
 
-function LinearAlgebra.nullspace(ν::MM.MomentMatrix{T}, tol=1e-8) where {T}
+function LinearAlgebra.nullspace(ν::MM.MomentMatrix{T}, tol = 1e-8) where {T}
     M = Matrix{T}(undef, SS.nequalities(ν.support), length(ν.basis))
     for (i, eq) in enumerate(SS.equalities(ν.support))
         M[i, :] = MP.coefficients(eq, ν.basis.monomials)

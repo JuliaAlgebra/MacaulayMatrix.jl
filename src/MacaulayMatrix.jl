@@ -50,20 +50,30 @@ mutable struct Iterator{T,P<:MP.AbstractPolynomialLike,V<:AbstractVector{P},B,U}
     status::MOI.TerminationStatusCode
     stats::DataFrames.DataFrame
     solver::Solver
-    function Iterator(matrix::LazyMatrix{T,P,V,B}, solver::Solver) where {T,P,V,B}
+    function Iterator(
+        matrix::LazyMatrix{T,P,V,B},
+        solver::Solver,
+    ) where {T,P,V,B}
         U = SS.promote_for(T, Solver)
         return new{T,P,V,B,U}(
             matrix,
             nothing,
             nothing,
             MOI.OPTIMIZE_NOT_CALLED,
-            DataFrames.DataFrame(nullity = Int[], num_rows = Int[], num_cols = Int[]),
+            DataFrames.DataFrame(
+                nullity = Int[],
+                num_rows = Int[],
+                num_cols = Int[],
+            ),
             solver,
         )
     end
 end
 
-function Iterator(polynomials::AbstractVector{<:MP.AbstractPolynomialLike}, solver::Solver)
+function Iterator(
+    polynomials::AbstractVector{<:MP.AbstractPolynomialLike},
+    solver::Solver,
+)
     return Iterator(LazyMatrix(polynomials), solver)
 end
 
@@ -81,10 +91,12 @@ function Base.show(io::IO, s::Iterator)
         end
     end
     println(io, "History of iterations:")
-    show(io, s.stats)
+    return show(io, s.stats)
 end
 
-init(V::SS.AbstractAlgebraicSet, solver::Solver) = Iterator(SS.equalities(V), solver)
+function init(V::SS.AbstractAlgebraicSet, solver::Solver)
+    return Iterator(SS.equalities(V), solver)
+end
 
 function solve!(s::Iterator)
     while s.status == MOI.OPTIMIZE_NOT_CALLED
@@ -94,7 +106,10 @@ function solve!(s::Iterator)
 end
 
 # Inspired from `macaulaylab.net/Code/solvesystemnullspace.m`
-function solve_system(polynomials::AbstractVector{<:MP.AbstractPolynomialLike}; kws...)
+function solve_system(
+    polynomials::AbstractVector{<:MP.AbstractPolynomialLike};
+    kws...,
+)
     return solve(SS.algebraic_set(polynomials, Solver(; kws...)))
 end
 
@@ -124,8 +139,11 @@ function expand!(s::Iterator, sel::FirstStandardNonSaturated)
         @info("No candidate to saturate")
         return 0
     end
-    added =
-        expand!(s.matrix, TargetColumns(targets); sparse_columns = s.solver.sparse_columns)
+    added = expand!(
+        s.matrix,
+        TargetColumns(targets);
+        sparse_columns = s.solver.sparse_columns,
+    )
     if added > 0 && s.solver.print_level >= 1
         @info("Added $added rows to saturate columns `$targets`")
     end
@@ -178,7 +196,8 @@ function step!(s::Iterator, it)
         !s.solver.wait_for_gap ||
         (!isempty(s.stats.nullity) && nullity == s.stats.nullity[end])
     if s.solver.trim_to_border || try_solving
-        rank_check = something(s.solver.rank_check, MM.LeadingRelativeRankTol(1e-8))
+        rank_check =
+            something(s.solver.rank_check, MM.LeadingRelativeRankTol(1e-8))
         s.border = MM.BorderBasis{s.solver.dependence}(null, rank_check)
     end
     if try_solving
@@ -224,7 +243,8 @@ function step!(s::Iterator, it)
         )
         trimmed_null = null[standard_and_border]
         s.matrix = LazyMatrix(
-            LinearAlgebra.nullspace(trimmed_null.matrix')' * standard_and_border.monomials,
+            LinearAlgebra.nullspace(trimmed_null.matrix')' *
+            standard_and_border.monomials,
         )
         # To at least add the unshifted polynomials otherwise the next iteration
         # will do nothing

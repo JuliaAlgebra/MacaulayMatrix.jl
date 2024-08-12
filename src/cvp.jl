@@ -10,7 +10,8 @@ export eliminate_indices
 
 Represent the set `x'A'Ax = 1`.
 """
-struct Ellipsoid{T,M<:AbstractMatrix{T}} <: ManifoldsBase.AbstractManifold{ManifoldsBase.ℝ}
+struct Ellipsoid{T,M<:AbstractMatrix{T}} <:
+       ManifoldsBase.AbstractManifold{ManifoldsBase.ℝ}
     A::M
 end
 
@@ -80,7 +81,13 @@ function _eliminate_indices(
             )
             return J
         end
-        x = Manopt.LevenbergMarquardt(manifold, f, jacobian_f, partition(start), length(I))
+        x = Manopt.LevenbergMarquardt(
+            manifold,
+            f,
+            jacobian_f,
+            partition(start),
+            length(I),
+        )
     else
         function eval_f_cb(M, x)
             val = LinearAlgebra.norm(AI' * x)^2 / 2
@@ -130,7 +137,12 @@ function eliminate_indices(
     kws...,
 )
     num_z_rows = size(A, 1) - num_nz_rows
-    partition(x) = Manifolds.ArrayPartition(x[1:num_nz_rows], x[(num_nz_rows+1):end])
+    function partition(x)
+        return Manifolds.ArrayPartition(
+            x[1:num_nz_rows],
+            x[(num_nz_rows+1):end],
+        )
+    end
     manifold = Manifolds.ProductManifold(
         Manifolds.Sphere(num_nz_rows - 1),
         Manifolds.Euclidean(num_z_rows),
@@ -154,7 +166,8 @@ function pure_σ_rows(M::LazyMatrix, i::Int, σ::MP.AbstractVariable)
         for (j, status) in enumerate(statuses)
             if status == INCLUDED || status == NOT_REDUNDANT
                 row += 1
-                if pure_power(shift, σ) && (j == i || !_zero_constant(M.polynomials[j]))
+                if pure_power(shift, σ) &&
+                   (j == i || !_zero_constant(M.polynomials[j]))
                     push!(σ_rows, row)
                 else
                     push!(other_rows, row)

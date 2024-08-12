@@ -21,8 +21,11 @@ function add_monomial_ideal_generators!(
         var = last(vars)
         maxdeg = maximum(
             (
-                MP.degree(mono, var) for mono in standard_monomials.monomials if all(
-                    v -> v in vars || MP.degree(mono, v) == MP.degree(fixed, v),
+                MP.degree(mono, var) for
+                mono in standard_monomials.monomials if all(
+                    v ->
+                        v in vars ||
+                            MP.degree(mono, v) == MP.degree(fixed, v),
                     MP.variables(fixed),
                 )
             );

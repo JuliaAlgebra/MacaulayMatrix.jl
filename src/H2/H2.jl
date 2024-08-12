@@ -67,7 +67,8 @@ A New Algorithm for L_2 Optimal Model Reduction,
 J.T. Spanos, M.H. Milman, D.L. Mingori
 (1992) - Automatica.
 """
-Spanos_1992_1() = ContinuousSISOTransferFunction([1, 15, 50], [1, 5, 33, 79, 50])
+Spanos_1992_1() =
+    ContinuousSISOTransferFunction([1, 15, 50], [1, 5, 33, 79, 50])
 
 """
 A New Algorithm for L_2 Optimal Model Reduction,
@@ -78,7 +79,6 @@ Spanos_1992_3() = ContinuousSISOTransferFunction(
     [0, 0, 0, 0.00001, 0.0110, 1],
     [1, 0.2220, 22.1242, 3.5445, 122.4433, 11.3231, 11.1100],
 )
-
 
 """
 H2 Model Reduction for Large-Scale Linear Dynamical Systems,
@@ -181,7 +181,6 @@ function composeSystemWalsh(tf::SISOTransferFunction, q::Int)
     return sys, vars
 end
 
-
 function analyseSolutions(
     x::Vector{Vector{Float64}},
     tf::SISOTransferFunction,
@@ -205,8 +204,8 @@ function analyseSolutions(
         println("----- Solution i: $(i) -----")
         sol = x[i]
 
-        b_hat_s, a_hat_s =
-            sol[q+1:q+q]' * monomials(s, 0:q-1), [1; sol[1:q]]' * monomials(s, 0:q)
+        b_hat_s, a_hat_s = sol[q+1:q+q]' * monomials(s, 0:q-1),
+        [1; sol[1:q]]' * monomials(s, 0:q)
         h_approx(y) = b_hat_s(s => y) ./ a_hat_s(s => y)
 
         # Use Polynomial.jl package to calculate roots of univariate polynomial:
@@ -308,7 +307,6 @@ function analyseSolutions(
     end
     h_norm = sqrt(1 / (2 * pi) * I)
 
-
     # Print results:
     println("\n")
     if tf isa DiscreteSISOTransferFunction
@@ -337,7 +335,6 @@ function convertToSS(sol::Vector{Float64}, q::Int)
     sys = ControlSystemsBase.tf(num, den)
     return ControlSystemsBase.ssdata(ControlSystemsBase.ss(sys))
 end
-
 
 """
     convolveSym(x::Vector, y::Vector)
@@ -384,7 +381,6 @@ function addPoly(x::Vector, y::Vector)
     end
     return vec(x + y)
 end
-
 
 """
 Notes on computation time:
