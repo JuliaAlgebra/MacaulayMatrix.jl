@@ -334,6 +334,7 @@ function is_new(
 end
 
 function nonredundant(
+<<<<<<< HEAD
     M1::LazyMatrix,
     polys,
     args...;
@@ -343,4 +344,26 @@ function nonredundant(
     return LazyMatrix(filter(M1.polynomials) do p
         return is_new(p, polys, args...; d, rank_ref)
     end)
+=======
+    polys,
+    refs,
+    args...;
+    d = max(MP.maxdegree(refs), MP.maxdegree(polys)),
+)
+    all = copy(refs)
+    rank_ref = LinearAlgebra.rank(macaulay(all, d), args...)
+    nonred = eltype(polys)[]
+    for p in polys
+        if is_new(p, all, args...; d, rank_ref)
+            push!(nonred, p)
+            push!(all, p)
+            rank_ref = LinearAlgebra.rank(macaulay(all, d), args...)
+        end
+    end
+    return nonred
+end
+
+function nonredundant(M::LazyMatrix, args...; kws...)
+    return LazyMatrix(nonredundant(M.polynomials, args...; kws...))
+>>>>>>> 35ab9f5 (Nullspace of MomentMatrix with ShiftNullspace)
 end
