@@ -1,3 +1,5 @@
+export nonredundant
+
 """
     @enum(ShiftStatus, NOT_INCLUDED, INCLUDED, NOT_REDUNDANT, REDUNDANT)
 
@@ -309,4 +311,36 @@ function LinearAlgebra.nullspace(M::LazyMatrix, args...)
         "Nullspace of dimensions $(size(Z)) computed from Macaulay matrix of dimension $(size(S)) in $Δt seconds."
     )
     return MM.MacaulayNullspace(Z, M.column_basis, accuracy)
+end
+
+default_rank_check(::Nothing) = MM.LeadingRelativeRankTol(1e-8)
+default_rank_check(r::MM.RankCheck) = r
+
+function LinearAlgebra.rank(M::LazyMatrix, rank_check=nothing)
+    S = LinearAlgebra.svd(Matrix(SparseArrays.sparse(M)))
+    return MM.rank_from_singular_values(S.S, default_rank_check(rank_check))
+end
+
+function is_new(
+    p::MP.AbstractPolynomialLike,
+    polys,
+    args...;
+    d = max(MP.maxdegree(p), MP.maxdegree(polys)),
+    rank_ref = rank(macaulay(polys, d), args...),
+)
+    rnew = LinearAlgebra.rank(macaulay([polys; p], d))
+    @assert rnew >= rank_ref
+    return rnew > rank_ref
+end
+
+function nonredundant(
+    M1::LazyMatrix, polys, args...;
+    d = max(MP.maxdegree(M1.polynomials), MP.maxdegree(polys)),
+)
+    rank_ref = LinearAlgebra.rank(macaulay(polys, d), args...)
+    return LazyMatrix(
+        filter(M1.polynomials) do p
+            is_new(p, polys, args...; d, rank_ref)
+        end,
+    )
 end

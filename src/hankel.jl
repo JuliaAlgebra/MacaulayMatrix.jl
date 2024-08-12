@@ -146,22 +146,45 @@ end
 Return the nullspace of `ν` as an vector of polynomials.
 """
 function cheat_system(ν::MM.MomentMatrix, args...)
-    M = cheat_nullspace(ν, args...)
-    return M * ν.basis.monomials
+    return cheat_nullspace(ν, args...).polynomials
 end
 
 function LinearAlgebra.nullspace(ν::MM.MomentMatrix, rank_check::MM.RankCheck)
     S = LinearAlgebra.svd(MM.value_matrix(ν))
     r = MM.rank_from_singular_values(S.S, rank_check)
-    return S.U[:, (r+1):end]'
+    return LazyMatrix(S.U[:, (r+1):end]' * ν.basis.monomials)
 end
 
-function LinearAlgebra.nullspace(ν::MM.MomentMatrix{T}, tol = 1e-8) where {T}
-    M = Matrix{T}(undef, SS.nequalities(ν.support), length(ν.basis))
-    for (i, eq) in enumerate(SS.equalities(ν.support))
-        M[i, :] = MP.coefficients(eq, ν.basis.monomials)
+function LinearAlgebra.nullspace(ν::MM.MomentMatrix, rank_check::MM.RankCheck, solver::MM.ShiftNullspace; kws...)
+    null = MM.MacaulayNullspace(ν, rank_check)
+    border = MM.BorderBasis{MM.StaircaseDependence}(null, solver.check)
+    std = MM.standard_basis(border.dependence; trivial = false)
+    dep = MM.dependent_basis(border.dependence)
+    ν.support = SS.algebraic_set(dep.monomials - border.matrix' * std.monomials)
+    return LinearAlgebra.nullspace(ν; kws...)
+end
+
+function LinearAlgebra.nullspace(ν::MM.MomentMatrix, rank_check::MM.RankCheck, solver::MM.Echelon; kws...)
+    MM.compute_support!(ν, rank_check, solver)
+    return LinearAlgebra.nullspace(ν; kws...)
+end
+
+function clean(α::Real; tol = 1e-8)
+    if abs(α) < tol
+        return zero(α)
+    else
+        r = round(α)
+        if abs(α - r) < tol
+            return r
+        end
+        return α
     end
-    S = SparseArrays.sparse(M)
-    SparseArrays.droptol!(S, tol)
-    return S
+end
+
+function clean(p::MP.AbstractPolynomialLike; kws...)
+    return MP.map_coefficients(α -> clean(α; kws...), p)
+end
+
+function LinearAlgebra.nullspace(ν::MM.MomentMatrix; kws...)
+    return LazyMatrix(clean.(SS.equalities(ν.support); kws...))
 end
