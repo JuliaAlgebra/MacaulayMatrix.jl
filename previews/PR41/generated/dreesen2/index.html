@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Getting rid of root at infinity · MacaulayMatrix</title><meta name="title" content="Getting rid of root at infinity · MacaulayMatrix"/><meta property="og:title" content="Getting rid of root at infinity · MacaulayMatrix"/><meta property="twitter:title" content="Getting rid of root at infinity · MacaulayMatrix"/><meta name="description" content="Documentation for MacaulayMatrix."/><meta property="og:description" content="Documentation for MacaulayMatrix."/><meta property="twitter:description" content="Documentation for MacaulayMatrix."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">MacaulayMatrix</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Index</a></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../dreesen10/">Positive dimensional roots at infinity</a></li><li class="is-active"><a class="tocitem" href>Getting rid of root at infinity</a><ul class="internal"><li><a class="tocitem" href="#Staicase-analysis"><span>Staicase analysis</span></a></li><li><a class="tocitem" href="#Moment-approach"><span>Moment approach</span></a></li></ul></li><li><a class="tocitem" href="../infinity/">Degree gap versus staircase gap</a></li><li><a class="tocitem" href="../univariate/">Univariate</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li class="is-active"><a href>Getting rid of root at infinity</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Getting rid of root at infinity</a></li></ul></nav><div class="docs-right"><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Getting-rid-of-root-at-infinity"><a class="docs-heading-anchor" href="#Getting-rid-of-root-at-infinity">Getting rid of root at infinity</a><a id="Getting-rid-of-root-at-infinity-1"></a><a class="docs-heading-anchor-permalink" href="#Getting-rid-of-root-at-infinity" title="Permalink"></a></h1><p><a href="https://mybinder.org/v2/gh/JuliaAlgebra/MacaulayMatrix.jl/gh-pages?filepath=previews/PR41/generated/dreesen2.ipynb"><img src="https://mybinder.org/badge_logo.svg" alt/></a> <a href="https://nbviewer.jupyter.org/github/JuliaAlgebra/MacaulayMatrix.jl/blob/gh-pages/previews/PR41/generated/dreesen2.ipynb"><img src="https://img.shields.io/badge/show-nbviewer-579ACA.svg" alt/></a> <strong>Adapted from</strong>: Section~2.2.1 p. 33 of [D13]</p><p>[D13] Dreesen, Philippe. <em>Back to the Roots: Polynomial System Solving Using Linear Algebra</em> Ph.D. thesis (2013)</p><pre><code class="language-julia hljs">using LinearAlgebra
+using TypedPolynomials
+using MacaulayMatrix
+using JuMP
+using MultivariateMoments</code></pre><p>Consider the system given in [D13, (2.3)] which corresponds to <code>Systems/dreesen2</code> of <a href="http://www.macaulaylab.net/">macaulaylab</a>:</p><pre><code class="language-julia hljs">@polyvar x y z
+system = [
+    x^2 - x*y + z,
+    2y^3 - 2x*y^2 - 3x * y,
+    z^3 - x*y*z - 2,
+]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">3-element Vector{MultivariatePolynomials.VectorPolynomial{Int64, MultivariatePolynomials.Term{Int64, TypedPolynomials.Monomial{(x, y, z), 3}}}}:
+ z - xy + x²
+ -3xy + 2y³ - 2xy²
+ -2 + z³ - xyz</code></pre><p>We first try to solve the system:</p><pre><code class="language-julia hljs">sols = solve_system(system, column_maxdegree = 6)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 6 rows to complete columns up to degree 3
+[ Info: Nullspace of dimensions (14, 8) computed from Macaulay matrix of dimension (6, 14) in 5.1986e-5 seconds.
+[ Info: Added 12 rows to complete columns up to degree 4
+[ Info: Nullspace of dimensions (33, 15) computed from Macaulay matrix of dimension (18, 33) in 9.6279e-5 seconds.
+[ Info: Added 22 rows to complete columns up to degree 5
+[ Info: Nullspace of dimensions (56, 18) computed from Macaulay matrix of dimension (40, 56) in 0.000310477 seconds.
+[ Info: Added 35 rows to complete columns up to degree 6
+[ Info: Nullspace of dimensions (84, 18) computed from Macaulay matrix of dimension (75, 84) in 0.000812812 seconds.
+[ Info: Found 1 real solution</code></pre><p>The real solutions are</p><pre><code class="language-julia hljs">sols</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1-element Vector{Vector{Float64}}:
+ [3.842056017511343, 4.995671506251091, 4.432255330406801]</code></pre><h2 id="Staicase-analysis"><a class="docs-heading-anchor" href="#Staicase-analysis">Staicase analysis</a><a id="Staicase-analysis-1"></a><a class="docs-heading-anchor-permalink" href="#Staicase-analysis" title="Permalink"></a></h2><pre><code class="language-julia hljs">solver = Iterator(system, MacaulayMatrix.Solver())
+step!(solver)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 6 rows to complete columns up to degree 3
+[ Info: Nullspace of dimensions (14, 8) computed from Macaulay matrix of dimension (6, 14) in 4.9793e-5 seconds.</code></pre><p>We can look at the solver as follows:</p><pre><code class="language-julia hljs">solver</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">MacaulayMatrix matrix solver. Last iteration considered:
+6×14 Macaulay matrix for polynomials:
+  z - x*y + x^2
+  -3*x*y + 2*y^3 - 2*x*y^2
+  -2 + z^3 - x*y*z
+The row shifts are:
+MonomialBasis([1, z, y, x])
+The column basis is:
+MonomialBasis([1, z, z^2, y*z, x*z, x*y, x^2, z^3, y^3, x*y*z, x*y^2, x^2*z, x^2*y, x^3])
+BorderBasis with independent rows and dependent columns in:
+BasisDependence for bases:
+ Standard:
+ MonomialBasis([1, z, z^2, y*z, x*z, x*y, z^3, y^3])
+ Trivial Standard:
+ MonomialBasis([y, x, y^2, y*z^2, y^2*z, x*z^2, z^4, y*z^3, y^2*z^2, y^3*z, y^4, x*z^3])
+ Corners:
+ MonomialBasis([x^2, x*y*z, x*y^2])
+ Trivial Independent Border:
+ MonomialBasis([x*y*z^2, x*y^2*z, x*y^3, x^2*z^2])
+ Dependent Border:
+ MonomialBasis([x^2*z, x^2*y])
+
+And entries in a 8×5 adjoint(::Matrix{Float64}) with eltype Float64:
+  4.159065386202991e-16   -1.9999999999999998      …  -1.9069420129706838e-16
+ -1.0                     -3.1080979595180984e-16      4.5135339788020976e-17
+  1.1499638451679124e-17   2.176915759031188e-16      -1.2298933558687206e-16
+ -1.041204178188655e-16   -3.470680593962184e-16      -1.0
+ -7.832624135939215e-17   -2.4017185283265312e-17     -4.699574481563529e-16
+  1.0                     -4.3281882871179737e-17  …  -1.5000000000000002
+  4.8138576458356415e-17   1.0                        -3.677747436866566e-17
+ -5.551115123125784e-17    3.8163916471489786e-16      1.0000000000000004
+Current status is OPTIMIZE_NOT_CALLED
+History of iterations:
+<span class="sgr1">1×3 DataFrame
+ Row │ nullity  num_rows  num_cols
+     │<span class="sgr90"> Int64    Int64     Int64
+─────┼─────────────────────────────
+   1 │       8         6        14</span></span></code></pre><p>We can see in the border dependence that even if <code>x^2</code> is a corner, the multiplication matrix for <code>x</code> cannot be computed as <code>y^3</code> (resp. <code>x*z^2</code>, <code>y*z^2</code>) is standard but <code>x * y^3</code> (resp. <code>x^2 * z^2</code>, <code>x * y * z^2</code>) is indepedent.</p><pre><code class="language-julia hljs">using Plots
+plot(saturated_dependence(solver))</code></pre><img src="4dead971.svg" alt="Example block output"/><p>Let&#39;s do another step:</p><pre><code class="language-julia hljs">step!(solver)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 12 rows to complete columns up to degree 4
+[ Info: Nullspace of dimensions (33, 15) computed from Macaulay matrix of dimension (18, 33) in 0.000130273 seconds.</code></pre><p>This time, the blocker for computing the multiplication matrix for <code>x</code> are <code>z^4</code> and <code>y * z^3</code> among others.</p><pre><code class="language-julia hljs">plot(saturated_dependence(solver))</code></pre><img src="6881f6e2.svg" alt="Example block output"/><p>Let&#39;s do another step:</p><pre><code class="language-julia hljs">step!(solver)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 22 rows to complete columns up to degree 5
+[ Info: Nullspace of dimensions (56, 18) computed from Macaulay matrix of dimension (40, 56) in 0.000360561 seconds.</code></pre><p>Now they are <code>z^5</code> and <code>y * z^4</code> among others.</p><pre><code class="language-julia hljs">plot(saturated_dependence(solver))</code></pre><img src="1b2c92c2.svg" alt="Example block output"/><p>Let&#39;s do a last step:</p><pre><code class="language-julia hljs">step!(solver)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 35 rows to complete columns up to degree 6
+[ Info: Nullspace of dimensions (84, 18) computed from Macaulay matrix of dimension (75, 84) in 0.000858447 seconds.
+[ Info: Found 1 real solution</code></pre><p>Now we see that the whole border is dependent so the four multiplication matrices can be computed.</p><pre><code class="language-julia hljs">plot(saturated_dependence(solver))</code></pre><img src="fe4825ba.svg" alt="Example block output"/><p>In retrospect, we we probably should have expanded in priority towards larger exponents for <code>z</code>.</p><h3 id="Saturation"><a class="docs-heading-anchor" href="#Saturation">Saturation</a><a id="Saturation-1"></a><a class="docs-heading-anchor-permalink" href="#Saturation" title="Permalink"></a></h3><p>Let&#39;s start again by starting with the same first stop.</p><pre><code class="language-julia hljs">solver = Iterator(system, MacaulayMatrix.Solver())
+step!(solver)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 6 rows to complete columns up to degree 3
+[ Info: Nullspace of dimensions (14, 8) computed from Macaulay matrix of dimension (6, 14) in 5.3249e-5 seconds.</code></pre><p>This time, let&#39;s focus on saturating the first non-saturated standard monomials:</p><pre><code class="language-julia hljs">step!(solver, FirstStandardNonSaturated(10))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 12 rows to saturate columns `TypedPolynomials.Monomial{(x, y, z), 3}[z, y, x, z², yz, y², xz, xy, z³, yz²]`
+[ Info: Nullspace of dimensions (38, 20) computed from Macaulay matrix of dimension (18, 38) in 9.9165e-5 seconds.</code></pre><p>We can see that <code>z</code> is now saturated:</p><pre><code class="language-julia hljs">plot(saturated_dependence(solver))</code></pre><img src="b30becec.svg" alt="Example block output"/><p>Let&#39;s saturate the next one:</p><pre><code class="language-julia hljs">step!(solver, FirstStandardNonSaturated(10))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 20 rows to saturate columns `TypedPolynomials.Monomial{(x, y, z), 3}[y²z, y³, xz², z⁴, yz³, y²z², y³z, y⁴, z⁵, yz⁴]`
+[ Info: Nullspace of dimensions (70, 32) computed from Macaulay matrix of dimension (38, 70) in 0.000341615 seconds.</code></pre><p>We can see that <code>y</code> went from trivial to saturated:</p><pre><code class="language-julia hljs">plot(saturated_dependence(solver))</code></pre><img src="755dd196.svg" alt="Example block output"/><p>Let&#39;s saturate the next one:</p><pre><code class="language-julia hljs">step!(solver, FirstStandardNonSaturated(10))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 20 rows to saturate columns `TypedPolynomials.Monomial{(x, y, z), 3}[y⁵, z⁶, yz⁵, y⁶, z⁷, yz⁶, y⁷, z⁸, yz⁷, y⁸]`
+[ Info: Nullspace of dimensions (103, 45) computed from Macaulay matrix of dimension (58, 103) in 0.000676348 seconds.</code></pre><p>We can see that <code>x</code> went from trivial to saturated:</p><pre><code class="language-julia hljs">plot(saturated_dependence(solver))</code></pre><img src="86191a48.svg" alt="Example block output"/><p>Let&#39;s saturate the next one:</p><pre><code class="language-julia hljs">step!(solver, FirstStandardNonSaturated(10))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 20 rows to saturate columns `TypedPolynomials.Monomial{(x, y, z), 3}[z⁹, yz⁸, y⁹, z¹⁰, yz⁹, y¹⁰, z¹¹, yz¹⁰, y¹¹, z¹²]`
+[ Info: Nullspace of dimensions (136, 58) computed from Macaulay matrix of dimension (78, 136) in 0.001828241 seconds.</code></pre><p>We can see that <code>z^2</code> is now saturated:</p><pre><code class="language-julia hljs">plot(saturated_dependence(solver))</code></pre><img src="6356988b.svg" alt="Example block output"/><p>We can see that this does not seem to work. By saturating a monomial, we generate all the rows that have a nonzero entry for the corresponding column in the MacaulayMatrix matrix. If the monomial is standard, it means that the column is a linear combination of other columns (which are dependent in the MacaulayMatrix Nullspace) of the MacaulayMatrix matrix. If we saturate these other columns, the linear combination may not work anymore. But we are only saturating the standard monomials, we don&#39;t saturate the rows that are dependent in the MacaulayMatrix Nullspace which explains the result we have seen here.</p><h2 id="Moment-approach"><a class="docs-heading-anchor" href="#Moment-approach">Moment approach</a><a id="Moment-approach-1"></a><a class="docs-heading-anchor-permalink" href="#Moment-approach" title="Permalink"></a></h2><p>With moment matrix of degree 3:</p><pre><code class="language-julia hljs">import SCS
+solver = SCS.Optimizer
+M = moment_matrix(system, solver, 3)
+
+atomic_measure(M, 1e-4, ShiftNullspace())</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Nullspace of dimensions (14, 8) computed from Macaulay matrix of dimension (6, 14) in 3.2821e-5 seconds.
+------------------------------------------------------------------
+	       SCS v3.2.6 - Splitting Conic Solver
+	(c) Brendan O&#39;Donoghue, Stanford University, 2012
+------------------------------------------------------------------
+problem:  variables n: 11, constraints m: 11
+cones: 	  z: primal zero / dual free vars: 1
+	  s: psd vars: 10, ssize: 1
+settings: eps_abs: 1.0e-04, eps_rel: 1.0e-04, eps_infeas: 1.0e-07
+	  alpha: 1.50, scale: 1.00e-01, adaptive_scale: 1
+	  max_iters: 100000, normalize: 1, rho_x: 1.00e-06
+	  acceleration_lookback: 10, acceleration_interval: 10
+	  compiled with openmp parallelization enabled
+lin-sys:  sparse-direct-amd-qdldl
+	  nnz(A): 70, nnz(P): 0
+------------------------------------------------------------------
+ iter | pri res | dua res |   gap   |   obj   |  scale  | time (s)
+------------------------------------------------------------------
+     0| 1.00e+00  4.35e-07  3.44e-07  1.72e-07  1.00e-01  8.28e-03
+    25| 2.98e-08  3.95e-13  3.95e-13 -1.97e-13  1.00e-01  3.24e-02
+------------------------------------------------------------------
+status:  solved
+timings: total: 3.24e-02s = setup: 5.58e-05s + solve: 3.24e-02s
+	 lin-sys: 1.62e-05s, cones: 9.65e-05s, accel: 1.74e-06s
+------------------------------------------------------------------
+objective = -0.000000
+------------------------------------------------------------------
+[ Info: Terminated with OPTIMAL (solved) in 0.032422429999999995 seconds.</code></pre><p>With moment matrix of degree 4:</p><pre><code class="language-julia hljs">M = moment_matrix(system, solver, 4)
+
+atomic_measure(M, 1e-4, ShiftNullspace())</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Nullspace of dimensions (33, 15) computed from Macaulay matrix of dimension (18, 33) in 0.000153014 seconds.
+------------------------------------------------------------------
+	       SCS v3.2.6 - Splitting Conic Solver
+	(c) Brendan O&#39;Donoghue, Stanford University, 2012
+------------------------------------------------------------------
+problem:  variables n: 17, constraints m: 56
+cones: 	  z: primal zero / dual free vars: 1
+	  s: psd vars: 55, ssize: 1
+settings: eps_abs: 1.0e-04, eps_rel: 1.0e-04, eps_infeas: 1.0e-07
+	  alpha: 1.50, scale: 1.00e-01, adaptive_scale: 1
+	  max_iters: 100000, normalize: 1, rho_x: 1.00e-06
+	  acceleration_lookback: 10, acceleration_interval: 10
+	  compiled with openmp parallelization enabled
+lin-sys:  sparse-direct-amd-qdldl
+	  nnz(A): 786, nnz(P): 0
+------------------------------------------------------------------
+ iter | pri res | dua res |   gap   |   obj   |  scale  | time (s)
+------------------------------------------------------------------
+     0| 9.99e-01  2.90e-02  2.54e-02  1.27e-02  1.00e-01  4.14e-03
+    75| 1.83e-04  3.32e-06  1.41e-06 -7.04e-07  1.00e-01  2.62e-02
+------------------------------------------------------------------
+status:  solved
+timings: total: 2.62e-02s = setup: 2.49e-04s + solve: 2.59e-02s
+	 lin-sys: 1.95e-04s, cones: 9.97e-04s, accel: 5.45e-06s
+------------------------------------------------------------------
+objective = -0.000001
+------------------------------------------------------------------
+[ Info: Terminated with OPTIMAL (solved) in 0.026191351999999998 seconds.</code></pre><p>With moment matrix of degree 5:</p><pre><code class="language-julia hljs">M = moment_matrix(system, solver, 5)
+
+atomic_measure(M, 1e-4, ShiftNullspace())</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Atomic measure on the variables x, y, z with 1 atoms:
+ at [4.151667283346746, 5.398644215968993, 4.80789339165137] with weight 1.9250198347979169e-10</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../dreesen10/">« Positive dimensional roots at infinity</a><a class="docs-footer-nextpage" href="../infinity/">Degree gap versus staircase gap »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Monday 12 August 2024 10:29">Monday 12 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
