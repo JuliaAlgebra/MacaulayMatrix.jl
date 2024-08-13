@@ -1,6 +1,5 @@
 using TypedPolynomials
 using SemialgebraicSets
-import DynamicPolynomials
 function system(k, solver)
     @polyvar x y
     return @set x == y^k && y^k == 0 solver
