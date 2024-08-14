@@ -55,8 +55,9 @@ step!(solver, FirstStandardNonSaturated(10))
 
 plot(saturated_dependence(solver))
 
-import SCS
-solver = SCS.Optimizer
+import Clarabel
+solver = Clarabel.Optimizer
+
 M = moment_matrix(system, solver, 3)
 nothing # hide
 
