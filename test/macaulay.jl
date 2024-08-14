@@ -116,7 +116,10 @@ function test_dreesen1()
         @testset "psd_hankel" begin
             _test_moments(
                 ps,
-                optimizer_with_attributes(Clarabel.Optimizer, MOI.Silent() => true),
+                optimizer_with_attributes(
+                    Clarabel.Optimizer,
+                    MOI.Silent() => true,
+                ),
                 d,
                 d == 3 ? nothing : expected,
             )
