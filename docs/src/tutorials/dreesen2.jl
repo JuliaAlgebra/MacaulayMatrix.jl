@@ -132,8 +132,9 @@ plot(saturated_dependence(solver))
 
 # With moment matrix of degree 3:
 
-import SCS
-solver = SCS.Optimizer
+import Clarabel
+solver = Clarabel.Optimizer
+
 M = moment_matrix(system, solver, 3)
 nothing # hide
 

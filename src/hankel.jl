@@ -33,7 +33,6 @@ function MM.moment_matrix(
     null = null[[mono for mono in monos if mono in null.basis.monomials]]
     num_inf = length(monos) - size(null.matrix, 1)
     JuMP.@variable(model, b[1:(r+num_inf)])
-    JuMP.@constraint(model, LinearAlgebra.dot(b, null.matrix[1, :]) == 1)
     inf_idx = 0
     Zb = map(monos) do mono
         idx = MM._monomial_index(null.basis.monomials, mono)
@@ -47,6 +46,7 @@ function MM.moment_matrix(
             return null.matrix[idx, :]' * b[1:r]
         end
     end
+    JuMP.@constraint(model, Zb[1] == 1)
     @assert inf_idx == num_inf
     gram_monos = MP.monomials(vars, 0:d)
     H = LinearAlgebra.Symmetric([
