@@ -1,8 +1,9 @@
 module TestMacaulayMatrix
 
-using SparseArrays, Test
+using LinearAlgebra, SparseArrays, Test
 using TypedPolynomials
 import MultivariateBases as MB
+import MultivariateMoments as MM
 using MacaulayMatrix
 using JuMP
 import CSDP
@@ -44,6 +45,18 @@ function test_monomial_ideal_generators()
         y^3 * z^2,
         z^7,
     ])
+end
+
+function _test_moments(polys, solver, d, expected; tol = 1e-4)
+    ν = MM.moment_matrix(polys, solver, d)
+    @test MM.value_matrix(ν)[1, 1] ≈ 1 rtol = tol
+    η = MM.atomic_measure(ν, tol)
+    if isnothing(expected)
+        @test isnothing(η)
+    else
+        sols = [η.atoms[i].center for i in eachindex(η.atoms)]
+        _test_sols(sols, expected)
+    end
 end
 
 # Taken from `macaulaylab.net/Tests/testMacaulayMatrix.m`
@@ -99,14 +112,12 @@ function test_dreesen1()
             end
         end
         @testset "psd_hankel" begin
-            solver =
-                optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() => true)
-            sols = psd_hankel(ps, solver, d)
-            if d == 3
-                @test sols === nothing
-            else
-                _test_sols(sols, expected)
-            end
+            _test_moments(
+                ps,
+                optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() => true),
+                d,
+                d == 3 ? nothing : expected,
+            )
         end
     end
 end
@@ -127,11 +138,7 @@ function test_univariate()
     @test psd_hankel([q], solver, 3) === nothing
     @testset "d=$d" for d in 4:8
         sols = psd_hankel([q], solver, d)
-        if isodd(d)
-            @test sols === nothing # FIXME
-        else
-            _test_sols(sols, [[exp]])
-        end
+        _test_sols(sols, [[exp]])
     end
 end
 

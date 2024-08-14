@@ -1,5 +1,6 @@
-export solutions,
-    errors, support_error, cheat_rank, cheat_nullspace, cheat_system
+export solutions, errors, support_error
+export cheat_rank, cheat_nullspace, cheat_system
+export Hankel, Explicit
 
 function realization_hankel(M::MM.MomentMatrix)
     η = MM.atomic_measure(M, 1e-4)
@@ -14,6 +15,18 @@ function realization_hankel(H::LinearAlgebra.Symmetric, monos)
     return realization_hankel(MM.MomentMatrix(H, monos))
 end
 
+function _check_status(model, status)
+    if JuMP.MOI.get(model, status) != JuMP.MOI.FEASIBLE_POINT ||
+       JuMP.termination_status(model) != JuMP.MOI.OPTIMAL
+        message = string(JuMP.solution_summary(model))
+        if JuMP.MOI.get(model, status) == JuMP.MOI.NO_SOLUTION
+            error(message)
+        else
+            @warn(message)
+        end
+    end
+end
+
 function MM.moment_matrix(
     null::MM.MacaulayNullspace,
     solver,
@@ -21,6 +34,9 @@ function MM.moment_matrix(
     print_level = 1,
     T = Float64,
 )
+    if !MP.isconstant(null.basis.monomials[1])
+        error("The constant monomial is not part of the basis.")
+    end
     # TODO Newton polytope
     vars = MP.variables(null.basis.monomials)
     monos = MP.monomials(vars, 0:2d)
@@ -30,7 +46,6 @@ function MM.moment_matrix(
     null = null[[mono for mono in monos if mono in null.basis.monomials]]
     num_inf = length(monos) - size(null.matrix, 1)
     JuMP.@variable(model, b[1:(r+num_inf)])
-    JuMP.@constraint(model, sum(b) == 1)
     inf_idx = 0
     Zb = map(monos) do mono
         idx = MM._monomial_index(null.basis.monomials, mono)
@@ -44,6 +59,7 @@ function MM.moment_matrix(
             return null.matrix[idx, :]' * b[1:r]
         end
     end
+    JuMP.@constraint(model, Zb[1] == 1)
     @assert inf_idx == num_inf
     gram_monos = MP.monomials(vars, 0:d)
     H = LinearAlgebra.Symmetric([
@@ -59,23 +75,62 @@ function MM.moment_matrix(
     end
     if JuMP.termination_status(model) == JuMP.MOI.INFEASIBLE
         return
-    elseif JuMP.termination_status(model) == JuMP.MOI.ALMOST_OPTIMAL
-        @warn(string(JuMP.solution_summary(model)))
-    elseif JuMP.termination_status(model) != JuMP.MOI.OPTIMAL
-        error(string(JuMP.solution_summary(model)))
+    else
+        _check_status(model, JuMP.MOI.PrimalStatus())
     end
     H = LinearAlgebra.Symmetric(JuMP.value.(H))
     return MM.MomentMatrix(H, gram_monos)
 end
 
+struct Hankel end
+struct Explicit end
+
+# Moment problem should be a pure feasibility problem
+# to help maximize the rank.
+# min γ
+# γ + ∑ λ_i(x) p_i(x) is SOS
+#
+# ⟨μ, p_i(x) λ(x)⟩ = 0 ∀i, λ (Localization matrix)
+# ⟨μ, 1⟩ = 1
 function MM.moment_matrix(
-    polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}},
+    polynomials::AbstractVector{<:MP.AbstractPolynomialLike},
     solver,
-    maxdegree;
+    maxdegree,
+    ::Hankel;
     kws...,
-) where {T}
+)
     Z = LinearAlgebra.nullspace(macaulay(polynomials, maxdegree))
     return MM.moment_matrix(Z, solver; kws...)
+end
+
+function MM.moment_matrix(
+    polynomials::AbstractVector,
+    solver,
+    maxdegree::Integer;
+    kws...,
+)
+    return MM.moment_matrix(polynomials, solver, maxdegree, Hankel(); kws...)
+end
+
+function MM.moment_matrix(
+    polynomials::AbstractVector,
+    solver,
+    maxdegree::Integer,
+    ::Explicit;
+    kws...,
+)
+    model = JuMP.Model(solver)
+    JuMP.@variable(model, γ)
+    JuMP.@objective(model, Min, γ)
+    JuMP.@variable(model, λ[i in eachindex(polynomials)])
+    con_ref = JuMP.@constraint(model, γ + dot(polynomials, λ) in SOSCone())
+    JuMP.optimize!(model)
+    if JuMP.termination_status(model) == JuMP.MOI.DUAL_INFEASIBLE
+        return
+    else
+        _check_status(model, JuMP.MOI.DualStatus())
+    end
+    return MM.moment_matrix(con_ref)
 end
 
 function psd_hankel(args...)
@@ -161,7 +216,7 @@ function LinearAlgebra.nullspace(
     solver::MM.ShiftNullspace;
     kws...,
 )
-    null = MM.MacaulayNullspace(ν, rank_check)
+    null = MM.image_space(ν, rank_check)
     border = MM.BorderBasis{MM.StaircaseDependence}(null, solver.check)
     std = MM.standard_basis(border.dependence; trivial = false)
     dep = MM.dependent_basis(border.dependence)
