@@ -17,7 +17,7 @@ end
 
 function _check_status(model, status)
     if JuMP.MOI.get(model, status) != JuMP.MOI.FEASIBLE_POINT ||
-        JuMP.termination_status(model) != JuMP.MOI.OPTIMAL
+       JuMP.termination_status(model) != JuMP.MOI.OPTIMAL
         message = string(JuMP.solution_summary(model))
         if JuMP.MOI.get(model, status) == JuMP.MOI.NO_SOLUTION
             error(message)
@@ -109,14 +109,7 @@ function MM.moment_matrix(
     maxdegree::Integer;
     kws...,
 )
-    return MM.moment_matrix(
-        polynomials,
-        solver,
-        maxdegree,
-        Hankel();
-        kws...,
-    )
-
+    return MM.moment_matrix(polynomials, solver, maxdegree, Hankel(); kws...)
 end
 
 function MM.moment_matrix(
