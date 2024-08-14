@@ -1,5 +1,6 @@
-export solutions,
-    errors, support_error, cheat_rank, cheat_nullspace, cheat_system
+export solutions, errors, support_error
+export cheat_rank, cheat_nullspace, cheat_system
+export Hankel, Explicit
 
 function realization_hankel(M::MM.MomentMatrix)
     η = MM.atomic_measure(M, 1e-4)
@@ -12,6 +13,18 @@ end
 
 function realization_hankel(H::LinearAlgebra.Symmetric, monos)
     return realization_hankel(MM.MomentMatrix(H, monos))
+end
+
+function _check_status(model, status)
+    if JuMP.MOI.get(model, status) != JuMP.MOI.FEASIBLE_POINT ||
+        JuMP.termination_status(model) != JuMP.MOI.OPTIMAL
+        message = string(JuMP.solution_summary(model))
+        if JuMP.MOI.get(model, status) == JuMP.MOI.NO_SOLUTION
+            error(message)
+        else
+            @warn(message)
+        end
+    end
 end
 
 function MM.moment_matrix(
@@ -62,14 +75,15 @@ function MM.moment_matrix(
     end
     if JuMP.termination_status(model) == JuMP.MOI.INFEASIBLE
         return
-    elseif JuMP.termination_status(model) == JuMP.MOI.ALMOST_OPTIMAL
-        @warn(string(JuMP.solution_summary(model)))
-    elseif JuMP.termination_status(model) != JuMP.MOI.OPTIMAL
-        error(string(JuMP.solution_summary(model)))
+    else
+        _check_status(model, JuMP.MOI.PrimalStatus())
     end
     H = LinearAlgebra.Symmetric(JuMP.value.(H))
     return MM.MomentMatrix(H, gram_monos)
 end
+
+struct Hankel end
+struct Explicit end
 
 # Moment problem should be a pure feasibility problem
 # to help maximize the rank.
@@ -79,13 +93,51 @@ end
 # ⟨μ, p_i(x) λ(x)⟩ = 0 ∀i, λ (Localization matrix)
 # ⟨μ, 1⟩ = 1
 function MM.moment_matrix(
-    polynomials::AbstractVector{<:MP.AbstractPolynomialLike{T}},
+    polynomials::AbstractVector{<:MP.AbstractPolynomialLike},
     solver,
-    maxdegree;
+    maxdegree,
+    ::Hankel;
     kws...,
-) where {T}
+)
     Z = LinearAlgebra.nullspace(macaulay(polynomials, maxdegree))
     return MM.moment_matrix(Z, solver; kws...)
+end
+
+function MM.moment_matrix(
+    polynomials::AbstractVector,
+    solver,
+    maxdegree::Integer;
+    kws...,
+)
+    return MM.moment_matrix(
+        polynomials,
+        solver,
+        maxdegree,
+        Hankel();
+        kws...,
+    )
+
+end
+
+function MM.moment_matrix(
+    polynomials::AbstractVector,
+    solver,
+    maxdegree::Integer,
+    ::Explicit;
+    kws...,
+)
+    model = JuMP.Model(solver)
+    JuMP.@variable(model, γ)
+    JuMP.@objective(model, Min, γ)
+    JuMP.@variable(model, λ[i in eachindex(polynomials)])
+    con_ref = JuMP.@constraint(model, γ + dot(polynomials, λ) in SOSCone())
+    JuMP.optimize!(model)
+    if JuMP.termination_status(model) == JuMP.MOI.DUAL_INFEASIBLE
+        return
+    else
+        _check_status(model, JuMP.MOI.DualStatus())
+    end
+    return MM.moment_matrix(con_ref)
 end
 
 function psd_hankel(args...)
