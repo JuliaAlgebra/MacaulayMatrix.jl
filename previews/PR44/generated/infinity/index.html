@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Degree gap versus staircase gap · MacaulayMatrix</title><meta name="title" content="Degree gap versus staircase gap · MacaulayMatrix"/><meta property="og:title" content="Degree gap versus staircase gap · MacaulayMatrix"/><meta property="twitter:title" content="Degree gap versus staircase gap · MacaulayMatrix"/><meta name="description" content="Documentation for MacaulayMatrix."/><meta property="og:description" content="Documentation for MacaulayMatrix."/><meta property="twitter:description" content="Documentation for MacaulayMatrix."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">MacaulayMatrix</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Index</a></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../dreesen10/">Positive dimensional roots at infinity</a></li><li><a class="tocitem" href="../dreesen2/">Getting rid of root at infinity</a></li><li class="is-active"><a class="tocitem" href>Degree gap versus staircase gap</a><ul class="internal"><li><a class="tocitem" href="#In-more-details"><span>In more details</span></a></li><li><a class="tocitem" href="#Not-waiting-for-the-gap-in-more-details"><span>Not waiting for the gap in more details</span></a></li><li><a class="tocitem" href="#Sparse-columns-in-more-details"><span>Sparse columns in more details</span></a></li></ul></li><li><a class="tocitem" href="../univariate/">Univariate</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li class="is-active"><a href>Degree gap versus staircase gap</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Degree gap versus staircase gap</a></li></ul></nav><div class="docs-right"><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Degree-gap-versus-staircase-gap"><a class="docs-heading-anchor" href="#Degree-gap-versus-staircase-gap">Degree gap versus staircase gap</a><a id="Degree-gap-versus-staircase-gap-1"></a><a class="docs-heading-anchor-permalink" href="#Degree-gap-versus-staircase-gap" title="Permalink"></a></h1><p><a href="https://mybinder.org/v2/gh/JuliaAlgebra/MacaulayMatrix.jl/gh-pages?filepath=previews/PR44/generated/infinity.ipynb"><img src="https://mybinder.org/badge_logo.svg" alt/></a> <a href="https://nbviewer.jupyter.org/github/JuliaAlgebra/MacaulayMatrix.jl/blob/gh-pages/previews/PR44/generated/infinity.ipynb"><img src="https://img.shields.io/badge/show-nbviewer-579ACA.svg" alt/></a></p><pre><code class="language-julia hljs">using TypedPolynomials
+using SemialgebraicSets
+function system(k, solver)
+    @polyvar x y
+    return @set x == y^k &amp;&amp; y^k == 0 solver
+end
+using Random
+Random.seed!(80)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Random.TaskLocalRNG()</code></pre><p>Let&#39;s start with the classical approach with all columns up to degree 5 and waiting for the gap:</p><pre><code class="language-julia hljs">using MacaulayMatrix
+sys_gap = system(4, MacaulayMatrix.Solver(sparse_columns = false, wait_for_gap = true))
+solutions = collect(sys_gap)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 2 rows to complete columns up to degree 4
+[ Info: Nullspace of dimensions (15, 13) computed from Macaulay matrix of dimension (2, 15) in 4.4273e-5 seconds.
+[ Info: Added 4 rows to complete columns up to degree 5
+[ Info: Nullspace of dimensions (21, 15) computed from Macaulay matrix of dimension (6, 21) in 2.5127e-5 seconds.
+[ Info: Added 6 rows to complete columns up to degree 6
+[ Info: Nullspace of dimensions (28, 16) computed from Macaulay matrix of dimension (12, 28) in 3.6839e-5 seconds.
+[ Info: Added 8 rows to complete columns up to degree 7
+[ Info: Nullspace of dimensions (36, 16) computed from Macaulay matrix of dimension (20, 36) in 6.0012e-5 seconds.
+[ Info: Found 1 real solution</code></pre><p>We find the expected solution</p><pre><code class="language-julia hljs">solutions</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1-element Vector{Vector{Float64}}:
+ [-1.7687461110662856e-16, -0.39155425716877207]</code></pre><p>If we don&#39;t wait for the gap, we get it earlier:</p><pre><code class="language-julia hljs">using MacaulayMatrix
+sys = system(4, MacaulayMatrix.Solver(sparse_columns = false))
+solutions = collect(sys)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 2 rows to complete columns up to degree 4
+[ Info: Nullspace of dimensions (15, 13) computed from Macaulay matrix of dimension (2, 15) in 2.2903e-5 seconds.
+┌ Warning: `LAPACK.trsen!` throwed an exception for `[3, 4]` so using default tolerance `2.220446049250313e-16`
+└ @ SemialgebraicSets ~/.julia/packages/SemialgebraicSets/BoKut/src/schur.jl:22
+[ Info: Found 1 real solution</code></pre><p>We find the expected solution</p><pre><code class="language-julia hljs">solutions</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1-element Vector{Vector{Float64}}:
+ [-1.962615573354718e-16, -1.1927117914146596e-16]</code></pre><p>But we can actually also just use the 2 columns that are actually used:</p><pre><code class="language-julia hljs">sys_sparse = system(4, MacaulayMatrix.Solver())
+solutions = collect(sys_sparse)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 2 rows to complete columns up to degree 4
+[ Info: Nullspace of dimensions (2, 0) computed from Macaulay matrix of dimension (2, 2) in 1.2683e-5 seconds.
+[ Info: Found 1 real solution</code></pre><p>We find the expected solution</p><pre><code class="language-julia hljs">solutions</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1-element Vector{Vector{Float64}}:
+ [0.0, 0.0]</code></pre><h2 id="In-more-details"><a class="docs-heading-anchor" href="#In-more-details">In more details</a><a id="In-more-details-1"></a><a class="docs-heading-anchor-permalink" href="#In-more-details" title="Permalink"></a></h2><pre><code class="language-julia hljs">solver_gap = init(sys_gap, sys_gap.solver)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">MacaulayMatrix matrix solver. Last iteration considered:
+0×0 Macaulay matrix for polynomials:
+  x - y^4
+  y^4
+The row shifts are:
+MonomialBasis([])
+The column basis is:
+MonomialBasis([])
+Current status is OPTIMIZE_NOT_CALLED
+History of iterations:
+<span class="sgr1">0×3 DataFrame
+ Row │ nullity  num_rows  num_cols
+     │<span class="sgr90"> Int64    Int64     Int64
+─────┴─────────────────────────────</span></span></code></pre><p>After one step, we don&#39;t have the solution yet</p><pre><code class="language-julia hljs">step!(solver_gap)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 2 rows to complete columns up to degree 4
+[ Info: Nullspace of dimensions (15, 13) computed from Macaulay matrix of dimension (2, 15) in 3.0196e-5 seconds.</code></pre><p>After the second step, still no solution</p><pre><code class="language-julia hljs">step!(solver_gap)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 4 rows to complete columns up to degree 5
+[ Info: Nullspace of dimensions (21, 15) computed from Macaulay matrix of dimension (6, 21) in 3.0817e-5 seconds.</code></pre><p>After the third step, still no solution</p><pre><code class="language-julia hljs">step!(solver_gap)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 6 rows to complete columns up to degree 6
+[ Info: Nullspace of dimensions (28, 16) computed from Macaulay matrix of dimension (12, 28) in 4.297e-5 seconds.</code></pre><p>After the fourth step, we find the solution</p><pre><code class="language-julia hljs">step!(solver_gap)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 8 rows to complete columns up to degree 7
+[ Info: Nullspace of dimensions (36, 16) computed from Macaulay matrix of dimension (20, 36) in 6.5181e-5 seconds.
+[ Info: Found 1 real solution</code></pre><p>We can inspect the solver at follows</p><pre><code class="language-julia hljs">solver_gap</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">MacaulayMatrix matrix solver. Last iteration considered:
+20×36 Macaulay matrix for polynomials:
+  x - y^4
+  y^4
+The row shifts are:
+MonomialBasis([1, y, x, y^2, x*y, x^2, y^3, x*y^2, x^2*y, x^3])
+The column basis is:
+MonomialBasis([1, y, x, y^2, x*y, x^2, y^3, x*y^2, x^2*y, x^3, y^4, x*y^3, x^2*y^2, x^3*y, x^4, y^5, x*y^4, x^2*y^3, x^3*y^2, x^4*y, x^5, y^6, x*y^5, x^2*y^4, x^3*y^3, x^4*y^2, x^5*y, x^6, y^7, x*y^6, x^2*y^5, x^3*y^4, x^4*y^3, x^5*y^2, x^6*y, x^7])
+BorderBasis with independent rows and dependent columns in:
+BasisDependence for bases:
+ Standard:
+ MonomialBasis([1, y, y^2, y^3])
+ Corners:
+ MonomialBasis([x, y^4])
+ Dependent Border:
+ MonomialBasis([x*y, x*y^2, x*y^3])
+
+And entries in a 4×5 adjoint(::Matrix{Float64}) with eltype Float64:
+ -2.172825010123334e-16   1.8952692539670457e-16  …  -2.7755575615628892e-17
+ -1.062601985498177e-16   1.8952692539670447e-16      2.7755575615628944e-17
+  5.55111512312578e-17   -1.1102230246251565e-16     -2.775557561562892e-17
+  6.943015803029501e-34   9.720222124241336e-33      -3.471507901514769e-34
+Current status is OPTIMAL
+Found 1 solutions:
+  [-1.7687461110662856e-16, -0.39155425716877207]
+History of iterations:
+<span class="sgr1">4×3 DataFrame
+ Row │ nullity  num_rows  num_cols
+     │<span class="sgr90"> Int64    Int64     Int64
+─────┼─────────────────────────────
+   1 │      13         2        15
+   2 │      15         6        21
+   3 │      16        12        28
+   4 │      16        20        36</span></span></code></pre><p>The border dependence can be plotted for more visual inspection:</p><pre><code class="language-julia hljs">using Plots
+plot(saturated_dependence(solver_gap))</code></pre><img src="94d1c0cc.svg" alt="Example block output"/><p>We can see that the monomials of larger degree have not been used here. We can see them used with <code>AnyDependence</code> instead of <code>StaircaseDependence</code></p><pre><code class="language-julia hljs">solver_gap = init(sys_gap, MacaulayMatrix.Solver(dependence = MacaulayMatrix.MM.LinearDependence, sparse_columns = false, wait_for_gap = true))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">MacaulayMatrix matrix solver. Last iteration considered:
+0×0 Macaulay matrix for polynomials:
+  x - y^4
+  y^4
+The row shifts are:
+MonomialBasis([])
+The column basis is:
+MonomialBasis([])
+Current status is OPTIMIZE_NOT_CALLED
+History of iterations:
+<span class="sgr1">0×3 DataFrame
+ Row │ nullity  num_rows  num_cols
+     │<span class="sgr90"> Int64    Int64     Int64
+─────┴─────────────────────────────</span></span></code></pre><p>Let&#39;s solve again but not all the step at once:</p><pre><code class="language-julia hljs">solve!(solver_gap)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1-element Vector{Vector{Float64}}:
+ [-1.7687461110662856e-16, -0.3915542571687721]</code></pre><p>This time, we see the monomials at infinity as the blue balls outside the staircase. We can see that the degree 4 contains no independent as it is the gap zone.</p><pre><code class="language-julia hljs">using Plots
+plot(saturated_dependence(solver_gap))</code></pre><img src="25e4d0e6.svg" alt="Example block output"/><h2 id="Not-waiting-for-the-gap-in-more-details"><a class="docs-heading-anchor" href="#Not-waiting-for-the-gap-in-more-details">Not waiting for the gap in more details</a><a id="Not-waiting-for-the-gap-in-more-details-1"></a><a class="docs-heading-anchor-permalink" href="#Not-waiting-for-the-gap-in-more-details" title="Permalink"></a></h2><pre><code class="language-julia hljs">solver = init(sys, sys.solver)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">MacaulayMatrix matrix solver. Last iteration considered:
+0×0 Macaulay matrix for polynomials:
+  x - y^4
+  y^4
+The row shifts are:
+MonomialBasis([])
+The column basis is:
+MonomialBasis([])
+Current status is OPTIMIZE_NOT_CALLED
+History of iterations:
+<span class="sgr1">0×3 DataFrame
+ Row │ nullity  num_rows  num_cols
+     │<span class="sgr90"> Int64    Int64     Int64
+─────┴─────────────────────────────</span></span></code></pre><p>After one step, we find the solution</p><pre><code class="language-julia hljs">step!(solver)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 2 rows to complete columns up to degree 4
+[ Info: Nullspace of dimensions (15, 13) computed from Macaulay matrix of dimension (2, 15) in 4.3792e-5 seconds.
+[ Info: Found 1 real solution</code></pre><p>We can inspect <code>m</code> for more details</p><pre><code class="language-julia hljs">solver</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">MacaulayMatrix matrix solver. Last iteration considered:
+2×15 Macaulay matrix for polynomials:
+  x - y^4
+  y^4
+The row shifts are:
+MonomialBasis([1])
+The column basis is:
+MonomialBasis([1, y, x, y^2, x*y, x^2, y^3, x*y^2, x^2*y, x^3, y^4, x*y^3, x^2*y^2, x^3*y, x^4])
+BorderBasis with independent rows and dependent columns in:
+BasisDependence for bases:
+ Standard:
+ MonomialBasis([1, y, y^2, y^3])
+ Corners:
+ MonomialBasis([x, y^4])
+ Independent Border:
+ MonomialBasis([x*y, x*y^2, x*y^3])
+
+And entries in a 4×2 adjoint(::Matrix{Float64}) with eltype Float64:
+ -1.9626155733547191e-16  -3.925231146709439e-17
+ -1.1775693440128314e-16  -1.1775693440128314e-16
+  0.0                      0.0
+  0.0                      0.0
+Current status is OPTIMAL
+Found 1 solutions:
+  [-1.962615573354719e-16, 7.031051088568496e-17]
+History of iterations:
+<span class="sgr1">1×3 DataFrame
+ Row │ nullity  num_rows  num_cols
+     │<span class="sgr90"> Int64    Int64     Int64
+─────┼─────────────────────────────
+   1 │      13         2        15</span></span></code></pre><p>The border dependence can be plotted for more visual inspection:</p><pre><code class="language-julia hljs">plot(saturated_dependence(solver))</code></pre><img src="1abed5b7.svg" alt="Example block output"/><p>Even if there is no gap, the border is complete so we can get the multiplication matrices.</p><h2 id="Sparse-columns-in-more-details"><a class="docs-heading-anchor" href="#Sparse-columns-in-more-details">Sparse columns in more details</a><a id="Sparse-columns-in-more-details-1"></a><a class="docs-heading-anchor-permalink" href="#Sparse-columns-in-more-details" title="Permalink"></a></h2><pre><code class="language-julia hljs">sparse_solver = init(sys_sparse, sys_sparse.solver)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">MacaulayMatrix matrix solver. Last iteration considered:
+0×0 Macaulay matrix for polynomials:
+  x - y^4
+  y^4
+The row shifts are:
+MonomialBasis([])
+The column basis is:
+MonomialBasis([])
+Current status is OPTIMIZE_NOT_CALLED
+History of iterations:
+<span class="sgr1">0×3 DataFrame
+ Row │ nullity  num_rows  num_cols
+     │<span class="sgr90"> Int64    Int64     Int64
+─────┴─────────────────────────────</span></span></code></pre><p>After one step, we find the solution</p><pre><code class="language-julia hljs">step!(sparse_solver)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Added 2 rows to complete columns up to degree 4
+[ Info: Nullspace of dimensions (2, 0) computed from Macaulay matrix of dimension (2, 2) in 2.3043e-5 seconds.
+[ Info: Found 1 real solution</code></pre><p>We can inspect <code>m</code> for more details</p><pre><code class="language-julia hljs">sparse_solver</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">MacaulayMatrix matrix solver. Last iteration considered:
+2×2 Macaulay matrix for polynomials:
+  x - y^4
+  y^4
+The row shifts are:
+MonomialBasis([1])
+The column basis is:
+MonomialBasis([x, y^4])
+BorderBasis with independent rows and dependent columns in:
+BasisDependence for bases:
+ Trivial Standard:
+ MonomialBasis([1, y, y^2, y^3])
+ Corners:
+ MonomialBasis([x, y^4])
+ Trivial Independent Border:
+ MonomialBasis([x*y, x*y^2, x*y^3])
+
+And entries in a 0×2 adjoint(::Matrix{Float64}) with eltype Float64
+Current status is OPTIMAL
+Found 1 solutions:
+  [0.0, 0.0]
+History of iterations:
+<span class="sgr1">1×3 DataFrame
+ Row │ nullity  num_rows  num_cols
+     │<span class="sgr90"> Int64    Int64     Int64
+─────┼─────────────────────────────
+   1 │       0         2         2</span></span></code></pre><p>The border dependence can be plotted for more visual inspection:</p><pre><code class="language-julia hljs">plot(saturated_dependence(sparse_solver))</code></pre><img src="83fc16ba.svg" alt="Example block output"/><p>As we can see, for the sparse one, the standard monomials are &quot;trivial&quot; because they are trivially detected as independent since they are not part of the basis. The border is missing but the multiplication matrix for <code>y</code> can be computed first and then, using this multiplication matrix, the missing relations for the border can be obtained and then the multiplication matrix for <code>x</code> can be obtained.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../dreesen2/">« Getting rid of root at infinity</a><a class="docs-footer-nextpage" href="../univariate/">Univariate »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Wednesday 14 August 2024 15:33">Wednesday 14 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
