@@ -6,7 +6,7 @@ import MultivariateBases as MB
 import MultivariateMoments as MM
 using MacaulayMatrix
 using JuMP
-import CSDP
+import Clarabel
 
 function __test_monomial_ideal_generators(standard, generators)
     basis = MB.MonomialBasis(standard)
@@ -48,14 +48,16 @@ function test_monomial_ideal_generators()
 end
 
 function _test_moments(polys, solver, d, expected; tol = 1e-4)
-    ν = MM.moment_matrix(polys, solver, d)
-    @test MM.value_matrix(ν)[1, 1] ≈ 1 rtol = tol
-    η = MM.atomic_measure(ν, tol)
-    if isnothing(expected)
-        @test isnothing(η)
-    else
-        sols = [η.atoms[i].center for i in eachindex(η.atoms)]
-        _test_sols(sols, expected)
+    @testset "$approach" for approach in [Explicit(), Hankel()]
+        ν = MM.moment_matrix(polys, solver, d, approach)
+        @test MM.value_matrix(ν)[1, 1] ≈ 1 rtol = tol
+        η = MM.atomic_measure(ν, tol)
+        if isnothing(expected)
+            @test isnothing(η)
+        else
+            sols = [η.atoms[i].center for i in eachindex(η.atoms)]
+            _test_sols(sols, expected)
+        end
     end
 end
 
@@ -114,7 +116,7 @@ function test_dreesen1()
         @testset "psd_hankel" begin
             _test_moments(
                 ps,
-                optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() => true),
+                optimizer_with_attributes(Clarabel.Optimizer, MOI.Silent() => true),
                 d,
                 d == 3 ? nothing : expected,
             )
@@ -134,11 +136,9 @@ function test_univariate()
         sols = solve_system([q], column_maxdegree = d)
         _test_sols(sols, [[exp]])
     end
-    solver = optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() => true)
-    @test psd_hankel([q], solver, 3) === nothing
-    @testset "d=$d" for d in 4:8
-        sols = psd_hankel([q], solver, d)
-        _test_sols(sols, [[exp]])
+    solver = optimizer_with_attributes(Clarabel.Optimizer, MOI.Silent() => true)
+    @testset "d=$d" for d in 3:8
+        _test_moments([q], solver, d, d == 3 ? nothing : [[exp]])
     end
 end
 

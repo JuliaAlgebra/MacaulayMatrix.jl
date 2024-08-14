@@ -121,9 +121,14 @@ function MM.moment_matrix(
 )
     model = JuMP.Model(solver)
     JuMP.@variable(model, γ)
-    JuMP.@objective(model, Min, γ)
-    JuMP.@variable(model, λ[i in eachindex(polynomials)])
-    con_ref = JuMP.@constraint(model, γ + dot(polynomials, λ) in SOSCone())
+    JuMP.@objective(model, Max, γ)
+    vars = MP.variables(polynomials)
+    JuMP.@variable(
+        model,
+        λ[i in eachindex(polynomials)],
+        SumOfSquares.PolyJuMP.Poly(MP.monomials(vars, 0:(maxdegree - MP.maxdegree(polynomials[i])))),
+    )
+    con_ref = JuMP.@constraint(model, LinearAlgebra.dot(polynomials, λ) - γ in SumOfSquares.SOSCone())
     JuMP.optimize!(model)
     if JuMP.termination_status(model) == JuMP.MOI.DUAL_INFEASIBLE
         return

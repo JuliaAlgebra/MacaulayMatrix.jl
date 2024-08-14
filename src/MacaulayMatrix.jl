@@ -8,6 +8,8 @@ import JuMP
 import MultivariateMoments as MM
 import Printf
 
+import SumOfSquares
+
 import CommonSolve: solve, solve!, init, step!
 
 abstract type AbstractIteration end
