@@ -214,19 +214,19 @@ function cheat_system(ν::MM.MomentMatrix, args...)
     return cheat_nullspace(ν, args...).polynomials
 end
 
-function LinearAlgebra.nullspace(ν::MM.MomentMatrix, rank_check::MM.RankCheck)
+function LinearAlgebra.nullspace(ν::MM.MomentMatrix, rank_check = nothing)
     S = LinearAlgebra.svd(MM.value_matrix(ν))
-    r = MM.rank_from_singular_values(S.S, rank_check)
+    r = MM.rank_from_singular_values(S.S, default_rank_check(rank_check))
     return LazyMatrix(S.U[:, (r+1):end]' * ν.basis.monomials)
 end
 
 function LinearAlgebra.nullspace(
     ν::MM.MomentMatrix,
-    rank_check::MM.RankCheck,
-    solver::MM.ShiftNullspace;
+    solver::MM.ShiftNullspace,
+    rank_check = nothing;
     kws...,
 )
-    null = MM.image_space(ν, rank_check)
+    null = MM.image_space(ν, default_rank_check(rank_check))
     border = MM.BorderBasis{MM.StaircaseDependence}(null, solver.check)
     std = MM.standard_basis(border.dependence; trivial = false)
     dep = MM.dependent_basis(border.dependence)
@@ -236,30 +236,14 @@ end
 
 function LinearAlgebra.nullspace(
     ν::MM.MomentMatrix,
-    rank_check::MM.RankCheck,
-    solver::MM.Echelon;
+    solver::MM.Echelon,
+    rank_check = nothing;
     kws...,
 )
-    MM.compute_support!(ν, rank_check, solver)
+    MM.compute_support!(ν, default_rank_check(rank_check), solver)
     return LinearAlgebra.nullspace(ν; kws...)
 end
 
-function clean(α::Real; tol = 1e-8)
-    if abs(α) < tol
-        return zero(α)
-    else
-        r = round(α)
-        if abs(α - r) < tol
-            return r
-        end
-        return α
-    end
-end
-
-function clean(p::MP.AbstractPolynomialLike; kws...)
-    return MP.map_coefficients(α -> clean(α; kws...), p)
-end
-
-function LinearAlgebra.nullspace(ν::MM.MomentMatrix; kws...)
-    return LazyMatrix(clean.(SS.equalities(ν.support); kws...))
+function LinearAlgebra.nullspace(ν::MM.MomentMatrix)
+    return LazyMatrix(SS.equalities(ν.support))
 end

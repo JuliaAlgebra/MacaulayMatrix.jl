@@ -355,3 +355,40 @@ end
 function nonredundant(M::LazyMatrix, args...; kws...)
     return LazyMatrix(nonredundant(M.polynomials, args...; kws...))
 end
+
+function clean(α::Real; tol = 1e-8, max_digits = 1)
+    if abs(α) < tol
+        return zero(α)
+    else
+        r = rationalize(α; tol)
+        if ndigits(r.den) <= max_digits
+            return r
+        end
+        return α
+    end
+end
+
+function clean(p::MP.AbstractPolynomialLike; kws...)
+    deno = 1
+    r = map(MP.coefficients(p)) do α
+        r = clean(α; kws...)
+        if r isa Rational
+            deno = lcm(deno, r.den)
+            return r
+        else
+            return r::typeof(α)
+        end
+    end
+    q = map(r) do r
+        if r isa Rational
+            return convert(MP.coefficient_type(p), r.num * div(deno, r.den))
+        else
+            return (r * deno)::MP.coefficient_type(p)
+        end
+    end
+    return MP.polynomial(q, MP.monomials(p))
+end
+
+function clean(M::LazyMatrix; kws...)
+    return LazyMatrix(clean.(M.polynomials))
+end

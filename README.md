@@ -1,6 +1,6 @@
 # MacaulayMatrix
 
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://blegat.esat.kuleuven.cloud/dev/)
-[![Build Status](https://gitlab.esat.kuleuven.be/benoit.legat/MacaulayMatrix.jl/badges/main/pipeline.svg)](https://gitlab.com/blegat/MacaulayMatrix.jl/pipelines)
-[![Coverage](https://gitlab.esat.kuleuven.be/benoit.legat/MacaulayMatrix.jl/badges/main/coverage.svg)](https://gitlab.com/blegat/MacaulayMatrix.jl/commits/main)
-[![Coverage](https://codecov.io/gh/blegat/MacaulayMatrix.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/blegat/MacaulayMatrix.jl)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://juliaalgebra.github.io/MacaulayMatrix.jl/dev)
+[![Build Status](https://github.com/JuliaAlgebra/MacaulayMatrix.jl/workflows/CI/badge.svg?branch=main)](https://github.com/JuliaAlgebra/MacaulayMatrix.jl/actions?query=workflow%3ACI)
+[![Coverage](http://codecov.io/github/JuliaAlgebra/MacaulayMatrix.jl/coverage.svg?branch=main)](http://codecov.io/github/JuliaAlgebra/MacaulayMatrix.jl?branch=main
+)
