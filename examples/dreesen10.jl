@@ -65,7 +65,7 @@ M4 = nullspace(ν4, FixedRank(r4))
 # The nullspace of this standard form gives a Macaulay matrix
 # that's also in standard form hence is a bit more readable.
 
-M4 = nullspace(ν4, FixedRank(r4), ShiftNullspace())
+M4 = nullspace(ν4, ShiftNullspace(), FixedRank(r4))
 
 # We lose one equation here, probably because we ignore dependent
 # monomials that are multiple of another dependent one.
@@ -89,6 +89,6 @@ MacaulayMatrix.errors(ν5, x, expected(BigFloat))
 
 # Among these, we have 6 new equations:
 
-Δ5 = nonredundant(nullspace(ν5, FixedRank(r5), ShiftNullspace()), system)
+Δ5 = nonredundant(nullspace(ν5, ShiftNullspace(), FixedRank(r5)), system)
 
 # Are these equations also valid for complex solutions ?
