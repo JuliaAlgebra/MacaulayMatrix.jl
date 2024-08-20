@@ -31,6 +31,7 @@ TypedTables = "9d95f2ec-7b3d-5a63-8d20-e2491e220bb9"
 [compat]
 CommonSolve = "0.2"
 DataFrames = "1"
+DynamicPolynomials = "0.6"
 ForwardDiff = "0.10"
 JuMP = "1"
 MathOptInterface = "1"
