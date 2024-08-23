@@ -214,7 +214,7 @@ function cheat_system(ν::MM.MomentMatrix, args...)
     return cheat_nullspace(ν, args...).polynomials
 end
 
-function LinearAlgebra.nullspace(ν::MM.MomentMatrix, rank_check = nothing)
+function LinearAlgebra.nullspace(ν::MM.MomentMatrix, rank_check)
     S = LinearAlgebra.svd(MM.value_matrix(ν))
     r = MM.rank_from_singular_values(S.S, default_rank_check(rank_check))
     return LazyMatrix(S.U[:, (r+1):end]' * ν.basis.monomials)
