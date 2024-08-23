@@ -390,5 +390,5 @@ function clean(p::MP.AbstractPolynomialLike; kws...)
 end
 
 function clean(M::LazyMatrix; kws...)
-    return LazyMatrix(clean.(M.polynomials))
+    return LazyMatrix(clean.(M.polynomials; kws...))
 end
