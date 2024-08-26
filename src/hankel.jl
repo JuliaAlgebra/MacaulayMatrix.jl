@@ -82,6 +82,12 @@ function MM.moment_matrix(
     return MM.MomentMatrix(H, gram_monos)
 end
 
+function Base.truncate(ν::MM.MomentMatrix, d)
+    μ = MM.measure(ν)
+    monos = MP.monomials(MP.variables(μ), 0:d)
+    return MM.MomentMatrix(MM.hankel(μ, monos, monos), monos)
+end
+
 struct Hankel end
 struct Explicit end
 
