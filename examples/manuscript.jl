@@ -23,6 +23,15 @@ subs.(sys, x => 4, y => 3)
 # TODO: solve_system() removes complex-valued roots! How to compute all of them?
 sols = solve_system(sys, column_maxdegree = 4, print_level = 3)
 
+# Check whether nullity has stabilized for d = 4:
+Z3 = nullspace(macaulay(sys, 3)).matrix
+Z4 = nullspace(macaulay(sys, 4)).matrix
+Z5 = nullspace(macaulay(sys, 5)).matrix
+
+# Nullity stabilizes from d = 4, ...
+# Check for degree gap:
+~, S = svd(Z)
+
 # Let's try the moment-matrix approach:
 d_max = 4
 Z = nullspace(macaulay(sys, d_max))
@@ -43,7 +52,7 @@ res = atomic_measure(ν, 1e-4, ShiftNullspace())
 # Let's try the moment-matrix approach:
 d_max = 4
 Z = nullspace(macaulay(sys, d_max))
-d_m = 2
+d_m = 3
 ν = moment_matrix(Z, big_clarabel, d_m, T = BigFloat)
 
 # Manually inspect rank of Moment matrix via SVD:
