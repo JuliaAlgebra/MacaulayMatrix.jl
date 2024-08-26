@@ -47,10 +47,12 @@ function MM.moment_matrix(
     num_inf = length(monos) - size(null.matrix, 1)
     JuMP.@variable(model, b[1:(r+num_inf)])
     inf_idx = 0
+    missing_monos = eltype(null.basis.monomials)[]
     Zb = map(monos) do mono
         idx = MM._monomial_index(null.basis.monomials, mono)
         if isnothing(idx)
             inf_idx += 1
+            push!(missing_monos, mono)
             return convert(
                 JuMP.GenericAffExpr{T,JuMP.GenericVariableRef{T}},
                 b[r+inf_idx],
@@ -58,6 +60,9 @@ function MM.moment_matrix(
         else
             return null.matrix[idx, :]' * b[1:r]
         end
+    end
+    if !isempty(missing_monos)
+        @warn("Missing monomials $(missing_monos) in Macaulay nullspace, leaving them free to take any value in the moment matrix then.")
     end
     JuMP.@constraint(model, Zb[1] == 1)
     @assert inf_idx == num_inf
