@@ -41,9 +41,9 @@ res = atomic_measure(ν, 1e-4, ShiftNullspace())
 # 3) r: rank of the Moment M (used to retrieve the real-valued solutions)
 
 # Let's try the moment-matrix approach:
-d_max = 6
+d_max = 4
 Z = nullspace(macaulay(sys, d_max))
-d_m = 3
+d_m = 2
 ν = moment_matrix(Z, big_clarabel, d_m, T = BigFloat)
 
 # Manually inspect rank of Moment matrix via SVD:
@@ -52,45 +52,34 @@ M, S = svd(M)
 round.(log10.(S))
 
 # Given the rank r, check for solutions:
-r = 3
+r = 2
 res = atomic_measure(ν, FixedRank(r), ShiftNullspace())
 
 # Results (Clarabel BigFloat):
-# d_max = 4, d_m = 1: full rank
-# d_max = 4, d_m = 2: rank is clearly 2, one approximate solution (3.899, 2.999)
+# d_max = 4, d_m = 1: rank is not clear, seems full rank (3)
+# d_max = 4, d_m = 2: rank is clearly 2, two valid solutions! 
 # d_max = 4, d_m = 3: rank is clearly 6, no solutions... 
 
 # d_max = 5, d_m = 1: full rank
-# d_max = 5, d_m = 2: rank is clearly 2, one approximate solution (4.163, 2.999)
-# d_max = 5, d_m = 3: rank is clearly 6, no solutions...
-# d_max = 5, d_m = 4: rank seems 7, 1 approximate solution (0.682, 3.000)
+# d_max = 5, d_m = 2: rank is clearly 2, two valid solutions!
+# d_max = 5, d_m = 3: rank is clearly 6, two valid solutions! 
+# d_max = 5, d_m = 4: rank seems 7, not possible to find solutions.
 # d_max = 5, d_m = 5: difficult to find rank gap. 
-# If you choose rank = 7: 1 solution at (0.961, 3.000)
-# If you choose rank = 10: 1 solution at (0.948, 2.999)
 
 # d_max = 6, d_m = 1: full rank
-# d_max = 6, d_m = 2: rank is clearly 2, one approximate solution (0.934, 3.000)
-# d_max = 6, d_m = 3: rank is clearly 2, one wrong solution (1.548, 2.999)
-# d_max = 6, d_m = 4: rank seems 7, 1 solution (0.995, 2.999)
-# If you choose rank = 2: 1 solution (3.983, 2.999)
-# If you choose rank = 3: 2 SOLUTIONS (0.999, 2.999) and (4.000, 2.999). However, choosing the rank r = 3 based on the singular values of M does not seem an obvious choice...
+# d_max = 6, d_m = 2: rank is clearly 2, two valid solutions!
+# d_max = 6, d_m = 3: rank is clearly 2, two valid solutions!
+# d_max = 6, d_m = 4: rank seems 7, two valid solutions! 
 
-# d_max = 6, d_m = 5: rank seems 13, not possible to choose r such that you retrieve 2 solutions.
-# d_max = 7, d_m = 1: full rank
-# d_max = 7, d_m = 2: rank is clearly 2, one approximate solution (4.657, 3.000)
-# d_max = 7, d_m = 3: rank is clearly 2, one wrong solution (3.500, 2.999)
-# d_max = 7, d_m = 4: rank seems 7, 1 solution (3.967, 2.999)
-# If you choose rank = 5: 2 SOLUTIONS (3.999, 3.0000) and (0.9999, 2.9999). However, choosing the rank = 7 based on the singular values of M does not seem an obvious choice...
-# d_max = 7, d_m = 5: rank seems 8, one approximate solution (0.441, 3.000).
-# If you choose rank = 5: 2 SOLUTIONS (0.999, 2.999) and (4.000) and (3.000). However, choosing the rank r = 5 based on the singular values of M does not seem an obvious choice...
+# d_max = 6, d_m = 5: rank = 7 or rank = 8, two valid solutions!
 
-# ---> Hyperparameters: (d_max, d_m, r) = (6, 4, 3), (7, 4, 5) or (7, 5, 5) seem optimal.
+# TODO: when do we have `flatness'?
 
 # -------------- `CheatRank' function --------------
 
-d_max = 7
+d_max = 4
 Z = nullspace(macaulay(sys, d_max))
-d_m = 4
+d_m = 2
 ν = moment_matrix(Z, big_clarabel, d_m, T = BigFloat)
 
 # Let's cheat to find the correct rank:
@@ -101,6 +90,10 @@ r = MacaulayMatrix.cheat_rank(
     expected(BigFloat),
     LeadingRelativeRankTol(1e-6),
 )
-res = atomic_measure(ν, FixedRank(5), ShiftNullspace())
-# Not possible to find correct rank...
-# TODO: Why do we need to give the cheatrank function a `rank-check' method?
+res = atomic_measure(ν, FixedRank(r), ShiftNullspace())
+
+# --------------- Real radical ideal ---------------
+
+M = nullspace(ν, ShiftNullspace(), FixedRank(r))
+Δ = nonredundant(M, sys)
+# TODO: get this to work.

@@ -47,17 +47,17 @@ sys_posdim = [(x - 1)^2 + (y - 2)^2]
 
 sols = solve_system(sys_posdim, column_maxdegree = 15, print_level = 3)
 
-d_max = 4
+d_max = 2
 Z = nullspace(macaulay(sys_posdim, d_max))
 
 # Or put them in a loop:
 import SCS
 solver = SCS.Optimizer
-for i in 1:floor(d_max / 2)
+for i in 1:floor(d_max)
     println("\n \n \n --------- M_$i --------- \n")
     M = moment_matrix(Z, solver, i)
     res = atomic_measure(M, 1e-4, ShiftNullspace())
-    if length(res.atoms) >= 1
+    if !isnothing(res) && length(res.atoms) >= 1
         println("-- Retrieved solutions: ")
         for j in eachindex(res.atoms)
             println(res.atoms[j].center)
