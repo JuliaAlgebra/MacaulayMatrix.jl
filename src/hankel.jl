@@ -62,7 +62,9 @@ function MM.moment_matrix(
         end
     end
     if !isempty(missing_monos)
-        @warn("Missing monomials $(missing_monos) in Macaulay nullspace, leaving them free to take any value in the moment matrix then.")
+        @warn(
+            "Missing monomials $(missing_monos) in Macaulay nullspace, leaving them free to take any value in the moment matrix then."
+        )
     end
     JuMP.@constraint(model, Zb[1] == 1)
     @assert inf_idx == num_inf
