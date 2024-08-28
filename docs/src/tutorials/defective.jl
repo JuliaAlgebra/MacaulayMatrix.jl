@@ -40,11 +40,11 @@ svd(value_matrix(truncate(ν, 1))).S
 # The root can be obtained using:
 
 η = #src
-atomic_measure(ν4, FixedRank(1))
+atomic_measure(ν, FixedRank(1))
 
 @test length(η.atoms) == 1 #src
 @test η.atoms[1].center ≈ [4] rtol=1e-3 #src
 
 # The solution is also apparent from the equation in the nullspace of the moment matrix:
 
-nullspace(ν4, ShiftNullspace(), FixedRank(1)).polynomials
+nullspace(ν, ShiftNullspace(), FixedRank(1)).polynomials
