@@ -3,7 +3,11 @@
 #md # [![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](@__NBVIEWER_ROOT_URL__/generated/defective.ipynb)
 
 using Test #src
+using LinearAlgebra
 using TypedPolynomials
+using MacaulayMatrix
+using MultivariateMoments
+import Clarabel
 
 # Consider the following system with a root of multiplicity 4:
 
@@ -12,14 +16,11 @@ system = [(x - 4)^4]
 
 # The Macaulay framework finds the root with degree 4:
 
-using MacaulayMatrix
 solve_system(system, column_maxdegree = 4)
 
 # Let's find the max rank PSD hankel from from the degree 4
 # Macaulay nullspace:
 
-import Clarabel
-using MultivariateMoments
 ν = moment_matrix(system, Clarabel.Optimizer, 4)
 nothing #hide
 
