@@ -112,7 +112,27 @@ d_max = 4
 Z = nullspace(macaulay(sys, d_max))
 d_m = 2
 ν = moment_matrix(Z, big_clarabel, d_m, T = BigFloat)
-ν_1 = MacaulayMatrix.truncate(ν, 1)
+ν_1 = truncate(ν, 1)
+
+M = value_matrix(ν_1)
+M, S = svd(M)
+round.(log10.(S))
+
+# Given the rank r, check for solutions:
+r = 2
+res = atomic_measure(ν_1, FixedRank(r), ShiftNullspace())
+# Two real-valued solutions! 
+
+# Alternative:
+d_m = 1
+ν = moment_matrix(Z, big_clarabel, d_m, T = BigFloat)
+M = value_matrix(ν)
+M, S = svd(M)
+round.(log10.(S))
+
+# Given the rank r, check for solutions:
+r = 2
+res = atomic_measure(ν, FixedRank(r), ShiftNullspace())
 
 # --------------- Real radical ideal ---------------
 
