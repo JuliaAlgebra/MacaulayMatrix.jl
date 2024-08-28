@@ -30,7 +30,12 @@ Z5 = nullspace(macaulay(sys, 5)).matrix
 
 # Nullity stabilizes from d = 4, ...
 # Check for degree gap:
-~, S = svd(Z)
+~, S = svd(Z4[1:length(monomials((x, y), [0, 1, 2])), :])
+~, S = svd(Z4[1:length(monomials((x, y), [0, 1, 2, 3])), :])
+~, S = svd(Z4)
+# There is a degree gap: the final degree block (d = 4) does not contain linearly independent rows.
+
+# ----------- Automated moment approach ---------------
 
 # Let's try the moment-matrix approach:
 d_max = 4
@@ -41,18 +46,18 @@ big_clarabel = clarabel_optimizer(T = BigFloat)
 
 ν = moment_matrix(Z, big_clarabel, 2, T = BigFloat)
 res = atomic_measure(ν, 1e-4, ShiftNullspace())
-# The solution seems off. We probably need to be more carefull with the rank checks.
+# We are able to retrieve the two real-valued solutions!
 
 # ------------ Manual hyperparameter search -----------
 # Hyperparameters:
-# 1) d_max: degree of Macaulay to compute nullspace Z
-# 2) d_m: degree of the PSD Moment matrix M to construct from Z (d_m <= d_max)
-# 3) r: rank of the Moment M (used to retrieve the real-valued solutions)
+# 1) d_max = d_mac: degree of Macaulay to compute nullspace Z
+# 2) d_m = d_mom: degree of the PSD Moment matrix M to construct from Z (d_m <= d_max)
+# 3) r: rank of the Moment matrix M (used to retrieve the real-valued solutions)
 
 # Let's try the moment-matrix approach:
 d_max = 4
 Z = nullspace(macaulay(sys, d_max))
-d_m = 3
+d_m = 2
 ν = moment_matrix(Z, big_clarabel, d_m, T = BigFloat)
 
 # Manually inspect rank of Moment matrix via SVD:
@@ -100,6 +105,14 @@ r = MacaulayMatrix.cheat_rank(
     LeadingRelativeRankTol(1e-6),
 )
 res = atomic_measure(ν, FixedRank(r), ShiftNullspace())
+
+# --------------- Truncate the obtained moment matrix ---------
+
+d_max = 4
+Z = nullspace(macaulay(sys, d_max))
+d_m = 2
+ν = moment_matrix(Z, big_clarabel, d_m, T = BigFloat)
+ν_1 = MacaulayMatrix.truncate(ν, 1)
 
 # --------------- Real radical ideal ---------------
 
