@@ -108,6 +108,7 @@ res = atomic_measure(ν, FixedRank(r), ShiftNullspace())
 
 # --------------- Truncate the obtained moment matrix ---------
 
+# Lets try (d_mac, d_mom, d_tc) = (4, 4, 2):
 d_max = 4
 Z = nullspace(macaulay(sys, d_max))
 d_m = 2
@@ -121,9 +122,8 @@ round.(log10.(S))
 # Given the rank r, check for solutions:
 r = 2
 res = atomic_measure(ν_1, FixedRank(r), ShiftNullspace())
-# Two real-valued solutions! 
 
-# Alternative:
+# Alternative, lets try (d_mac, d_mom, d_tc) = (4, 2, 2):
 d_m = 1
 ν = moment_matrix(Z, big_clarabel, d_m, T = BigFloat)
 M = value_matrix(ν)
