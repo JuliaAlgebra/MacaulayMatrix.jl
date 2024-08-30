@@ -7,42 +7,53 @@
 
 using Test
 using LinearAlgebra
-using TypedPolynomials
+using DynamicPolynomials
 using MacaulayMatrix
 using JuMP
 using MultivariateMoments
 
 # Consider the system given in [D13, Example 6.14] which corresponds to `Systems/dreesen10` of [macaulaylab](http://www.macaulaylab.net/):
 
-@polyvar x[1:4]
+DynamicPolynomials.@polyvar x[1:4]
 system = [
     x[1] + x[2] - 1,
     x[1] * x[3] + x[2] * x[4],
-    x[1] * x[3]^2 + x[2] * x[4]^2 - 2/3,
+    x[1] * x[3]^2 + x[2] * x[4]^2 - 2 / 3,
     x[1] * x[3]^3 + x[2] * x[4]^3,
 ]
 
-expected(T=Float64) = [
-    T[1//2, 1//2, √T(2//3), -√T(2//3)],
-    T[1//2, 1//2, -√T(2//3), √T(2//3)],
-]
+function expected(T = Float64)
+    return [
+        T[1//2, 1//2, √T(2 // 3), -√T(2 // 3)],
+        T[1//2, 1//2, -√T(2 // 3), √T(2 // 3)],
+    ]
+end
+
+# Are there complex-valued solutions?
+using HomotopyContinuation
+res = HomotopyContinuation.solve(system)
+results(res)
+# This system has no complex-valued solutions.
 
 # With the classical MacaulayMatrix approach, the nullity increases by 2 at every degree
 # because of the positive dimensional solution set at infinity.
 # The solution is obtained at degree `6`.
-
 solve_system(system, column_maxdegree = 8)
 
 # With moment matrix of degree 4:
 
 include("solvers.jl")
 big_clarabel = clarabel_optimizer(T = BigFloat)
-
 ν4 = moment_matrix(system, big_clarabel, 4, T = BigFloat)
 
 # The rank of the moment matrix is `9`:
 
-r4 = MacaulayMatrix.cheat_rank(ν4, x, expected(BigFloat), LeadingRelativeRankTol(1e-6))
+r4 = MacaulayMatrix.cheat_rank(
+    ν4,
+    x,
+    expected(BigFloat),
+    LeadingRelativeRankTol(1e-6),
+)
 
 # The nullspace is then of degree 6 and we can see below that they are
 # 6 valid equations for our solutions.
@@ -81,7 +92,12 @@ M4 = nullspace(ν4, ShiftNullspace(), FixedRank(r4))
 
 # The rank of the moment matrix is now `5`:
 
-r5 = MacaulayMatrix.cheat_rank(ν5, x, expected(BigFloat), LeadingRelativeRankTol(1e-6))
+r5 = MacaulayMatrix.cheat_rank(
+    ν5,
+    x,
+    expected(BigFloat),
+    LeadingRelativeRankTol(1e-6),
+)
 
 # Indeed, we see that the SVD gives 10 valid equations:
 
