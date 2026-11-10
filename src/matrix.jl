@@ -21,12 +21,12 @@ function LazyMatrix(
     polynomials::V,
 ) where {T,P<:MP.AbstractPolynomialLike{T},V<:AbstractVector{P}}
     M = MP.monomial_type(polynomials)
-    B = MB.MonomialBasis{M,MP.monomial_vector_type(M)}
+    B = MP.monomial_vector_type(M)
     return LazyMatrix{T,P,V,B}(
         polynomials,
-        MB.empty_basis(B),
+        MP.empty_monomial_vector(M),
         Vector{ShiftStatus}[],
-        MB.empty_basis(B),
+        MP.empty_monomial_vector(M),
     )
 end
 
@@ -65,10 +65,16 @@ function Base.size(M::LazyMatrix)
     return (size(M, 1), size(M, 2))
 end
 
-function _merge_bases(a::MB.MonomialBasis, b::MB.MonomialBasis)
-    return MB.MonomialBasis(
-        MP.merge_monomial_vectors([a.monomials, b.monomials]),
-    )
+function _merge_monomials(a, b)
+    return MP.merge_monomial_vectors([a, MP.monomial_vector(collect(b))])
+end
+
+function _monomial_index(monos::AbstractVector, mono::MP.AbstractMonomial)
+    i = searchsortedfirst(monos, mono)
+    if i in eachindex(monos) && monos[i] == mono
+        return i
+    end
+    return
 end
 
 abstract type AbstractShiftsSelector end
@@ -153,7 +159,7 @@ function is_saturated(M::LazyMatrix, col::MP.AbstractMonomial)
         for mono in MP.monomials(poly)
             if MP.divides(mono, col)
                 shift = MP.div_multiple(col, mono)
-                i = MM._index(M.row_shifts, shift)
+                i = _monomial_index(M.row_shifts, shift)
                 if isnothing(i) || M.shift_statuses[i][j] == NOT_INCLUDED
                     return false
                 end
@@ -178,7 +184,7 @@ function expand!(M::LazyMatrix, shifts_selector; sparse_columns::Bool = true)
     if sparse_columns
         col_monos_to_add = Set{MT}()
     else
-        col_maxdeg = MP.maxdegree(M.column_basis.monomials)
+        col_maxdeg = MP.maxdegree(M.column_basis)
     end
     added = 0
     for (j, poly) in enumerate(M.polynomials)
@@ -187,7 +193,7 @@ function expand!(M::LazyMatrix, shifts_selector; sparse_columns::Bool = true)
             continue
         end
         for shift in selected_shifts
-            i = MM._monomial_index(M.row_shifts.monomials, shift)
+            i = _monomial_index(M.row_shifts, shift)
             if isnothing(i)
                 if !haskey(row_monos_to_add, shift)
                     row_monos_to_add[shift] =
@@ -202,9 +208,7 @@ function expand!(M::LazyMatrix, shifts_selector; sparse_columns::Bool = true)
                 statuses[j] = INCLUDED
                 for mono in MP.monomials(poly)
                     col = shift * mono
-                    if isnothing(
-                        MM._monomial_index(M.column_basis.monomials, col),
-                    )
+                    if isnothing(_monomial_index(M.column_basis, col))
                         if sparse_columns
                             if !(col in col_monos_to_add)
                                 push!(col_monos_to_add, col)
@@ -219,29 +223,23 @@ function expand!(M::LazyMatrix, shifts_selector; sparse_columns::Bool = true)
     end
     if sparse_columns
         if !isempty(col_monos_to_add)
-            M.column_basis = _merge_bases(
-                M.column_basis,
-                MB.MonomialBasis(collect(col_monos_to_add)),
-            )
+            M.column_basis = _merge_monomials(M.column_basis, col_monos_to_add)
         end
     else
-        M.column_basis = MB.MonomialBasis(MP.monomials(vars, 0:col_maxdeg))
+        M.column_basis = MP.monomials(vars, 0:col_maxdeg)
     end
     if !isempty(row_monos_to_add)
         old_shifts = M.row_shifts
-        M.row_shifts = _merge_bases(
-            M.row_shifts,
-            MB.MonomialBasis(collect(keys(row_monos_to_add))),
-        )
+        M.row_shifts = _merge_monomials(M.row_shifts, keys(row_monos_to_add))
         old_statuses = M.shift_statuses
         M.shift_statuses =
             Vector{Vector{ShiftStatus}}(undef, length(M.row_shifts))
-        for (shift, statuses) in zip(old_shifts.monomials, old_statuses)
-            i = MM._monomial_index(M.row_shifts.monomials, shift)
+        for (shift, statuses) in zip(old_shifts, old_statuses)
+            i = _monomial_index(M.row_shifts, shift)
             M.shift_statuses[i] = statuses
         end
         for (shift, statuses) in row_monos_to_add
-            i = MM._monomial_index(M.row_shifts.monomials, shift)
+            i = _monomial_index(M.row_shifts, shift)
             M.shift_statuses[i] = statuses
         end
     end
@@ -255,15 +253,12 @@ function macaulay(polynomials, maxdegree; kws...)
 end
 
 function SparseArrays.sparse(M::LazyMatrix{T}) where {T}
-    column = Dict(
-        M.column_basis.monomials[i] => i for
-        i in eachindex(M.column_basis.monomials)
-    )
+    column = Dict(M.column_basis[i] => i for i in eachindex(M.column_basis))
     row = 0
     I = Int[]
     J = Int[]
     K = T[]
-    for (shift, statuses) in zip(M.row_shifts.monomials, M.shift_statuses)
+    for (shift, statuses) in zip(M.row_shifts, M.shift_statuses)
         for (j, status) in enumerate(statuses)
             if status == INCLUDED || status == NOT_REDUNDANT
                 row += 1
@@ -310,7 +305,11 @@ function LinearAlgebra.nullspace(M::LazyMatrix, args...)
     @info(
         "Nullspace of dimensions $(size(Z)) computed from Macaulay matrix of dimension $(size(S)) in $Δt seconds."
     )
-    return MM.MacaulayNullspace(Z, M.column_basis, accuracy)
+    return MM.MacaulayNullspace(
+        Z,
+        MB.SubBasis{MB.Monomial}(M.column_basis),
+        accuracy,
+    )
 end
 
 default_rank_check(::Nothing) = MM.LeadingRelativeRankTol(1e-8)

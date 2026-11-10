@@ -30,26 +30,27 @@ end
 function MM.moment_matrix(
     null::MM.MacaulayNullspace,
     solver,
-    d = div(MP.maxdegree(null.basis), 2);
+    d = div(MP.maxdegree(MB.keys_as_monomials(null.basis)), 2);
     print_level = 1,
     T = Float64,
 )
-    if !MP.isconstant(null.basis.monomials[1])
+    null_monos = MB.keys_as_monomials(null.basis)
+    if !MP.isconstant(null_monos[1])
         error("The constant monomial is not part of the basis.")
     end
     # TODO Newton polytope
-    vars = MP.variables(null.basis.monomials)
+    vars = MP.variables(null_monos)
     monos = MP.monomials(vars, 0:2d)
     model = JuMP.GenericModel{T}(solver)
     r = size(null.matrix, 2)
     # Number of roots at infinity that were left out by not adding these as columns
-    null = null[[mono for mono in monos if mono in null.basis.monomials]]
+    null = null[[mono for mono in monos if mono in null_monos]]
     num_inf = length(monos) - size(null.matrix, 1)
     JuMP.@variable(model, b[1:(r+num_inf)])
     inf_idx = 0
-    missing_monos = eltype(null.basis.monomials)[]
+    missing_monos = eltype(null_monos)[]
     Zb = map(monos) do mono
-        idx = MM._monomial_index(null.basis.monomials, mono)
+        idx = MM._monomial_index(null.basis, mono)
         if isnothing(idx)
             inf_idx += 1
             push!(missing_monos, mono)
@@ -139,7 +140,7 @@ function MM.moment_matrix(
     JuMP.@variable(
         model,
         λ[i in eachindex(polynomials)],
-        SumOfSquares.PolyJuMP.Poly(
+        PolyJuMP.Poly(
             MP.monomials(vars, 0:(maxdegree-MP.maxdegree(polynomials[i]))),
         ),
     )
@@ -178,7 +179,9 @@ function solutions(M::MM.MomentMatrix, s = MM.ShiftNullspace())
 end
 
 function sol_diracs(ν, vars, sols)
-    return [MM.dirac(ν.basis.monomials, vars => sol) for sol in sols]
+    return [
+        MM.dirac(MB.keys_as_monomials(ν.basis), vars => sol) for sol in sols
+    ]
 end
 
 function errors(ν::MM.MomentMatrix, vars, sols)
@@ -230,7 +233,7 @@ end
 function LinearAlgebra.nullspace(ν::MM.MomentMatrix, rank_check)
     S = LinearAlgebra.svd(MM.value_matrix(ν))
     r = MM.rank_from_singular_values(S.S, default_rank_check(rank_check))
-    return LazyMatrix(S.U[:, (r+1):end]' * ν.basis.monomials)
+    return LazyMatrix(S.U[:, (r+1):end]' * MB.keys_as_monomials(ν.basis))
 end
 
 function LinearAlgebra.nullspace(
@@ -243,7 +246,9 @@ function LinearAlgebra.nullspace(
     border = MM.BorderBasis{MM.StaircaseDependence}(null, solver.check)
     std = MM.standard_basis(border.dependence; trivial = false)
     dep = MM.dependent_basis(border.dependence)
-    ν.support = SS.algebraic_set(dep.monomials - border.matrix' * std.monomials)
+    ν.support = SS.algebraic_set(
+        MB.keys_as_monomials(dep) - border.matrix' * MB.keys_as_monomials(std),
+    )
     return LinearAlgebra.nullspace(ν; kws...)
 end
 

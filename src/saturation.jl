@@ -37,7 +37,7 @@ function saturated_dependence(s::Iterator)
         dep.basis,
         Saturation[
             Saturation(dep.dependence[i], is_saturated(s.matrix, mono)) for
-            (i, mono) in enumerate(dep.basis.monomials)
+            (i, mono) in enumerate(MB.keys_as_monomials(dep.basis))
         ],
     )
 end

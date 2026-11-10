@@ -1,6 +1,7 @@
 import ManifoldsBase
 import Manifolds
 import Manopt
+import RecursiveArrayTools
 export eliminate_indices
 
 """
@@ -20,8 +21,8 @@ ManifoldsBase.manifold_dimension(e::Ellipsoid) = size(e.A, 2)
 ManifoldsBase.inner(::Ellipsoid, p, x, y) = LinearAlgebra.dot(x, y)
 
 # See Example 3.49, p. 40 of Boumal's book for the retraction on the Sphere
-function ManifoldsBase.retract_project!(M::Ellipsoid, q, p, x, t::Number)
-    return ManifoldsBase.project!(M, q, p + t * x)
+function ManifoldsBase.retract_project!(M::Ellipsoid, q, p, x)
+    return ManifoldsBase.project!(M, q, p + x)
 end
 
 # Projection of `y` to the tangent space at `x`
@@ -56,11 +57,16 @@ function _eliminate_indices(
     kws...,
 )
     AI = A[:, I]
+    p0 = ManifoldsBase.project(manifold, partition(start))
     if solver === Manopt.LevenbergMarquardt
         function f(M, x)
             return AI' * x
         end
-        function jacobian_f(M, p; basis_domain)
+        function jacobian_f(
+            M,
+            p;
+            basis_domain = ManifoldsBase.DefaultOrthonormalBasis(),
+        )
             #N = LinearAlgebra.nullspace(p.x[1]')
             #B = Matrix{Float64}(undef, size(AI, 1) - 1, size(AI, 2))
             #n = length(p.x[1])
@@ -81,13 +87,7 @@ function _eliminate_indices(
             )
             return J
         end
-        x = Manopt.LevenbergMarquardt(
-            manifold,
-            f,
-            jacobian_f,
-            partition(start),
-            length(I),
-        )
+        x = Manopt.LevenbergMarquardt(manifold, f, jacobian_f, p0, length(I))
     else
         function eval_f_cb(M, x)
             val = LinearAlgebra.norm(AI' * x)^2 / 2
@@ -101,7 +101,7 @@ function _eliminate_indices(
         mgo = Manopt.ManifoldGradientObjective(eval_f_cb, eval_grad_f_cb)
         dmgo = Manopt.decorate_objective!(manifold, mgo)
         problem = Manopt.DefaultManoptProblem(manifold, dmgo)
-        s = solver(manifold, partition(start); kws...)
+        s = solver(manifold; p = p0, kws...)
         state = Manopt.decorate_state!(s)
         Manopt.solve!(problem, state)
         obj = Manopt.get_objective(problem)
@@ -113,12 +113,13 @@ end
 function eliminate_indices(
     A::AbstractMatrix,
     I::AbstractVector{<:Integer};
-    stepsize = Manopt.ConstantStepsize(0.1),
+    stepsize = 0.1,
     retraction_method = ManifoldsBase.ProjectionRetraction(),
     kws...,
 )
     J = setdiff(axes(A, 2), I)
     manifold = Ellipsoid(A[:, J]')
+    stepsize = Manopt.ConstantStepsize(manifold, stepsize)
     return _eliminate_indices(
         manifold,
         A,
@@ -138,7 +139,7 @@ function eliminate_indices(
 )
     num_z_rows = size(A, 1) - num_nz_rows
     function partition(x)
-        return Manifolds.ArrayPartition(
+        return RecursiveArrayTools.ArrayPartition(
             x[1:num_nz_rows],
             x[(num_nz_rows+1):end],
         )
@@ -162,7 +163,7 @@ function pure_σ_rows(M::LazyMatrix, i::Int, σ::MP.AbstractVariable)
     σ_rows = Int[]
     other_rows = Int[]
     row = 0
-    for (shift, statuses) in zip(M.row_shifts.monomials, M.shift_statuses)
+    for (shift, statuses) in zip(M.row_shifts, M.shift_statuses)
         for (j, status) in enumerate(statuses)
             if status == INCLUDED || status == NOT_REDUNDANT
                 row += 1
@@ -178,22 +179,41 @@ function pure_σ_rows(M::LazyMatrix, i::Int, σ::MP.AbstractVariable)
     return σ_rows, other_rows
 end
 
+_variables(p, ::SS.FullSpace) = MP.variables(p)
+_variables(p, set) = MP.variables([p; MP.variables(set)])
+
+"""
+    cvp(
+        p,
+        [set::SS.AbstractSemialgebraicSet,]
+        maxdegree;
+        variables = MP.variables(p) ∪ MP.variables(set),
+        ellipsoid = false,
+        rank_check = MM.LeadingRelativeRankTol(Base.rtoldefault(Float64)),
+        kws...,
+    )
+
+Return a tuple `(c, ε)` where `c` is a univariate polynomial in a new variable
+`σ` whose roots contain the critical values of `p` on `set` and `ε` is the
+residual. The critical points are given by the KKT conditions of
+`PolyJuMP.lagrangian_kkt` with respect to `variables`.
+"""
 function cvp(
     p,
+    set::SS.AbstractSemialgebraicSet,
     maxdegree;
+    variables = _variables(p, set),
     ellipsoid = false,
     rank_check = MM.LeadingRelativeRankTol(Base.rtoldefault(Float64)),
     kws...,
 )
     σ = MP.similar_variable(p, :σ)
-    vars = MP.variables(p)
-    grad = MP.differentiate(p, vars)
-    eq = [σ - p; grad]
+    _, kkt = PolyJuMP.lagrangian_kkt(MOI.MIN_SENSE, p, set; variables)
+    eq = [σ - p; SS.equalities(kkt)]
     M = macaulay(eq, maxdegree)
-    N = eachindex(M.column_basis.monomials)
+    N = eachindex(M.column_basis)
     non_pure_σ = findall(N) do i
-        mono = M.column_basis.monomials[i]
-        return !pure_power(mono, σ)
+        return !pure_power(M.column_basis[i], σ)
     end
     J = setdiff(N, non_pure_σ)
     S = SparseArrays.sparse(M)
@@ -220,6 +240,8 @@ function cvp(
         end
         v = eliminate_indices(S, non_pure_σ, r; kws...)
     end
-    return MP.polynomial(v[J], M.column_basis.monomials[J]),
+    return MP.polynomial(v[J], M.column_basis[J]),
     LinearAlgebra.norm(v[non_pure_σ])
 end
+
+cvp(p, maxdegree; kws...) = cvp(p, SS.FullSpace(), maxdegree; kws...)

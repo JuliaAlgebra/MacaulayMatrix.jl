@@ -8,6 +8,7 @@ import JuMP
 import MultivariateMoments as MM
 import Printf
 
+import PolyJuMP
 import SumOfSquares
 
 import CommonSolve: solve, solve!, init, step!
@@ -126,7 +127,7 @@ end
 
 function expand!(s::Iterator, sel::FirstStandardNonSaturated)
     targets = MP.monomial_type(typeof(s.matrix))[]
-    for mono in MM.standard_basis(s.border.dependence).monomials
+    for mono in MB.keys_as_monomials(MM.standard_basis(s.border.dependence))
         if length(targets) >= sel.max_num
             break
         end
@@ -223,18 +224,19 @@ function step!(s::Iterator, it)
     end
     if s.solver.trim_to_border
         dep = s.border.dependence
+        dep_monos = MB.keys_as_monomials(dep.basis)
         standard_and_border = MM.sub_basis(
             dep,
             findall(eachindex(dep.dependence)) do i
-                if isnothing(MM._index(null.basis, dep.basis.monomials[i]))
+                mono = dep_monos[i]
+                if isnothing(MM._monomial_index(null.basis, mono))
                     return false
                 end
                 return MM.is_standard(dep.dependence[i]) ||
-                       any(MP.variables(dep.basis)) do v
-                    mono = dep.basis.monomials[i]
+                       any(MP.variables(dep_monos)) do v
                     if MP.divides(v, mono)
                         q = MP.div_multiple(mono, v)
-                        j = MM._index(dep.basis, q)
+                        j = MM._monomial_index(dep.basis, q)
                         if !isnothing(j) && MM.is_standard(dep.dependence[j])
                             return true
                         end
@@ -243,10 +245,11 @@ function step!(s::Iterator, it)
                 end
             end,
         )
-        trimmed_null = null[standard_and_border]
+        standard_and_border_monos = MB.keys_as_monomials(standard_and_border)
+        trimmed_null = null[standard_and_border_monos]
         s.matrix = LazyMatrix(
             LinearAlgebra.nullspace(trimmed_null.matrix')' *
-            standard_and_border.monomials,
+            standard_and_border_monos,
         )
         # To at least add the unshifted polynomials otherwise the next iteration
         # will do nothing

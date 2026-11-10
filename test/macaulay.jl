@@ -9,12 +9,11 @@ using JuMP
 import Clarabel
 
 function __test_monomial_ideal_generators(standard, generators)
-    basis = MB.MonomialBasis(standard)
+    basis = MB.SubBasis{MB.Monomial}(standard)
     output = @inferred monomial_ideal_generators(basis)
-    @test output isa MB.MonomialBasis
-    # FIXME equality between `MB.MonomialBasis` does not work
-    # `MB.MonomialBasis(generators)` ensures the basis is sorted
-    @test output.monomials == MB.MonomialBasis(generators).monomials
+    @test output isa MB.SubBasis{MB.Monomial}
+    # `MB.SubBasis{MB.Monomial}(generators)` ensures the basis is sorted
+    @test output == MB.SubBasis{MB.Monomial}(generators)
 end
 
 function _test_monomial_ideal_generators(generators)

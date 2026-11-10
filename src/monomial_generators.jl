@@ -8,7 +8,7 @@ monomial in `vars` and `vars * m` is not a multiple of any of the monomials in
 """
 function add_monomial_ideal_generators!(
     generators,
-    standard_monomials::MB.MonomialBasis,
+    standard_monomials::AbstractVector{<:MP.AbstractMonomial},
     fixed,
     vars,
 )
@@ -21,8 +21,7 @@ function add_monomial_ideal_generators!(
         var = last(vars)
         maxdeg = maximum(
             (
-                MP.degree(mono, var) for
-                mono in standard_monomials.monomials if all(
+                MP.degree(mono, var) for mono in standard_monomials if all(
                     v ->
                         v in vars ||
                             MP.degree(mono, v) == MP.degree(fixed, v),
@@ -55,14 +54,15 @@ end
 Given the standard monomials of a zero-dimensional monomial ideal, returns the
 generators of this monomial ideal.
 """
-function monomial_ideal_generators(standard_monomials::MB.MonomialBasis)
-    generators = similar(standard_monomials.monomials, 0)
-    fixed = MP.constant_monomial(eltype(standard_monomials.monomials))
+function monomial_ideal_generators(standard_basis::MB.SubBasis{MB.Monomial})
+    standard_monomials = MB.keys_as_monomials(standard_basis)
+    generators = similar(standard_monomials, 0)
+    fixed = MP.constant_monomial(eltype(standard_monomials))
     add_monomial_ideal_generators!(
         generators,
         standard_monomials,
         fixed,
         MP.variables(standard_monomials),
     )
-    return MB.MonomialBasis(generators)
+    return MB.SubBasis{MB.Monomial}(generators)
 end

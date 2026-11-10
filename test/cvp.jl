@@ -36,8 +36,9 @@ function test_elim(T = Float64)
     @test x / x[1] ≈ [1, -1, 0, 0] rtol = 1e-6
 end
 
-using TypedPolynomials
+using DynamicPolynomials
 import MultivariatePolynomials as MP
+import SemialgebraicSets
 
 function test_cvp(T = Float64)
     Random.seed!(0)
@@ -78,6 +79,26 @@ function test_cvp(T = Float64)
             end
         end
     end
+end
+
+function test_cvp_equality(T = Float64)
+    Random.seed!(0)
+    @polyvar x y
+    # The critical values of `x` on the circle are `-1` and `1`
+    set = SemialgebraicSets.@set x^2 + y^2 == 1
+    c, ε = MacaulayMatrix.cvp(
+        one(T) * x,
+        set,
+        4;
+        rank_check = nothing,
+        solver = MacaulayMatrix.Manopt.LevenbergMarquardt,
+    )
+    vars = MP.effective_variables(c)
+    @test length(vars) == 1
+    σ = first(vars)
+    c /= MP.coefficient(c, σ^2)
+    @test c ≈ σ^2 - one(T) atol = 1e-6
+    @test ε < 1e-6
 end
 
 function runtests()
